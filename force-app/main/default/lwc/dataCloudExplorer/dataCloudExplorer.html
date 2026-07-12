@@ -1,0 +1,108 @@
+<template>
+    <lightning-card icon-name="custom:custom64" class="slds-card_boundary">
+        <div slot="title" class="slds-text-heading_medium slds-text-color_success" style="font-weight: 700;">
+            Data Cloud: Identity Resolution Engine
+        </div>
+        
+        <div class="slds-p-around_medium slds-theme_default">
+            
+            <div class="slds-grid slds-gutters">
+                <!-- LEFT COLUMN: MESSY DATA -->
+                <div class="slds-col slds-size_1-of-2">
+                    <div class="slds-box slds-theme_shade">
+                        <h2 class="slds-text-heading_small slds-m-bottom_medium slds-text-color_error">
+                            <lightning-icon icon-name="utility:warning" size="small" class="slds-m-right_x-small"></lightning-icon>
+                            Fragmented Data Silos
+                        </h2>
+                        
+                        <!-- Marketing Data -->
+                        <h3 class="slds-text-title_caps slds-m-bottom_x-small">Email Marketing Tool (Subscribers)</h3>
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-bottom_large custom-table">
+                            <thead>
+                                <tr><th>Name</th><th>Email</th></tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={subscribers} for:item="sub">
+                                    <tr key={sub.Id}>
+                                        <td>{sub.Full_Name__c}</td>
+                                        <td>{sub.Email_Address__c}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+
+                        <!-- POS Data -->
+                        <h3 class="slds-text-title_caps slds-m-bottom_x-small">In-Store POS System (Transactions)</h3>
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                            <thead>
+                                <tr><th>Customer</th><th>Phone</th><th>Spend</th></tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={posRecords} for:item="pos">
+                                    <tr key={pos.Id}>
+                                        <td>{pos.Customer_Name__c}</td>
+                                        <td>{pos.Phone_Number__c}</td>
+                                        <td>${pos.Total_Spent__c}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: UNIFIED DATA -->
+                <div class="slds-col slds-size_1-of-2">
+                    <div class="slds-box" style="border: 2px solid #0176d3; background-color: #f4f6f9;">
+                        
+                        <div class="slds-grid slds-grid_align-spread slds-m-bottom_medium">
+                            <h2 class="slds-text-heading_small slds-text-color_default" style="color: #0176d3; font-weight: bold;">
+                                <lightning-icon icon-name="utility:merge" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Unified Customer 360 (Golden Records)
+                            </h2>
+                            <lightning-button label="Run Harmonization" variant="brand" onclick={handleRunHarmonization} disabled={isProcessing}></lightning-button>
+                        </div>
+                        
+                        <template if:true={isProcessing}>
+                            <div class="slds-p-around_large slds-text-align_center">
+                                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                                <p class="slds-m-top_medium">Applying Fuzzy Matching Algorithms...</p>
+                            </div>
+                        </template>
+                        
+                        <template if:false={isProcessing}>
+                            <template if:true={hasUnifiedData}>
+                                <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table golden-table">
+                                    <thead>
+                                        <tr>
+                                            <th>First Name</th>
+                                            <th>Primary Email</th>
+                                            <th>Primary Phone</th>
+                                            <th>Lifetime Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={unifiedRecords} for:item="u">
+                                            <tr key={u.Id}>
+                                                <td><strong>{u.First_Name__c}</strong></td>
+                                                <td>{u.Primary_Email__c}</td>
+                                                <td>{u.Primary_Phone__c}</td>
+                                                <td class="slds-text-color_success" style="font-weight: bold;">${u.Total_Lifetime_Value__c}</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </template>
+                            
+                            <template if:false={hasUnifiedData}>
+                                <div class="slds-p-around_large slds-text-align_center slds-text-color_weak">
+                                    <p>No unified records found. Click "Run Harmonization" to stitch the silos together!</p>
+                                </div>
+                            </template>
+                        </template>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>
