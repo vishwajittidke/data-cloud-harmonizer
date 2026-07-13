@@ -18,29 +18,29 @@ public with sharing class FuzzyMatcher {
             return '';
         }
         
-        // 1. Clean the input (uppercase, remove non-alphas)
-        String cleanInput = input.toUpperCase().replaceAll('[^A-Z]', '');
+        // 1. Clean the input (uppercase, keep letters AND numbers)
+        String cleanInput = input.toUpperCase().replaceAll('[^A-Z0-9]', '');
         if (cleanInput.length() == 0) {
             return '';
         }
         
-        // 2. Retain the first letter
-        String firstLetter = cleanInput.substring(0, 1);
-        String result = firstLetter;
+        // 2. Retain the first character
+        String firstChar = cleanInput.substring(0, 1);
+        String result = firstChar;
         
-        // 3. Map letters to Soundex digits (excluding the first letter)
-        // 1: B, F, P, V
-        // 2: C, G, J, K, Q, S, X, Z
-        // 3: D, T
-        // 4: L
-        // 5: M, N
-        // 6: R
-        // Ignored: A, E, I, O, U, H, W, Y
-        String previousCode = getSoundexDigit(firstLetter);
+        String previousCode = firstChar.isNumeric() ? '0' : getSoundexDigit(firstChar);
         
+        // 3. Map letters to Soundex digits, keep numbers as is
         for (Integer i = 1; i < cleanInput.length(); i++) {
-            String currentLetter = cleanInput.substring(i, i+1);
-            String currentCode = getSoundexDigit(currentLetter);
+            String currentChar = cleanInput.substring(i, i+1);
+            
+            if (currentChar.isNumeric()) {
+                result += currentChar;
+                previousCode = '0'; // reset previous code so subsequent letters don't falsely dedupe
+                continue;
+            }
+            
+            String currentCode = getSoundexDigit(currentChar);
             
             // Ignore vowels and W, H, Y (which map to '0')
             // Also ignore duplicates of the previous code
@@ -48,17 +48,9 @@ public with sharing class FuzzyMatcher {
                 result += currentCode;
             }
             
-            // Always update previous code, even if it was ignored (unless it was H or W in strict Soundex, but this is a simplified version)
             previousCode = currentCode;
             
-            if (result.length() == 4) {
-                break; // Soundex codes are max 4 characters
-            }
-        }
-        
-        // 4. Pad with zeros if less than 4 characters
-        while (result.length() < 4) {
-            result += '0';
+            // We NO LONGER truncate at 4 characters. This allows it to act as a highly specific phonetic match key!
         }
         
         return result;
