@@ -19,6 +19,8 @@ export default class DataCloudExplorer extends LightningElement {
     @track unifiedRecords = [];
     @track isProcessing = false;
     @track progressMessage = '';
+    @track progressPercent = 0;
+    @track showProgressBar = false;
     @track activeTab = 'dashboard';
 
     wiredDataResult;
@@ -60,6 +62,8 @@ export default class DataCloudExplorer extends LightningElement {
         }
         this.isProcessing = false;
         this.progressMessage = '';
+        this.showProgressBar = false;
+        this.progressPercent = 0;
     }
 
     /**
@@ -198,9 +202,11 @@ export default class DataCloudExplorer extends LightningElement {
                     
                     let statusStr = progress.status || 'Processing';
                     if (progress.total && progress.total > 0) {
-                        // total and processed are number of batches, we can show percentage or fraction
-                        this.progressMessage = `${statusStr}... (Batches processed: ${progress.processed} of ${progress.total})`;
+                        this.showProgressBar = true;
+                        this.progressPercent = Math.floor((progress.processed / progress.total) * 100);
+                        this.progressMessage = `${statusStr}... (${this.progressPercent}%)`;
                     } else {
+                        this.showProgressBar = false;
                         this.progressMessage = `${statusStr} large dataset...`;
                     }
 

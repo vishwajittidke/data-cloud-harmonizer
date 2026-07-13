@@ -98,7 +98,12 @@
                                 <template if:true={isProcessing}>
                                     <div class="slds-p-around_large slds-text-align_center">
                                         <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-                                        <p class="slds-m-top_medium slds-text-heading_small">{progressMessage}</p>
+                                        <p class="slds-m-top_medium slds-text-heading_small slds-text-color_weak">{progressMessage}</p>
+                                        <template if:true={showProgressBar}>
+                                            <div class="slds-m-top_medium slds-p-horizontal_large">
+                                                <lightning-progress-bar value={progressPercent} size="large" variant="circular"></lightning-progress-bar>
+                                            </div>
+                                        </template>
                                     </div>
                                 </template>
                                 
