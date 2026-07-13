@@ -61,10 +61,47 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     public static Map<String, Object> fetchDashboardData() {
         try {
             Map<String, Object> result = new Map<String, Object>();
-            result.put('subscribers', [SELECT Id, Full_Name__c, Email_Address__c FROM Email_Subscriber__c WITH USER_MODE ORDER BY Full_Name__c LIMIT 1000]);
-            result.put('pos', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c FROM POS_Transaction__c WITH USER_MODE ORDER BY Customer_Name__c LIMIT 1000]);
+            result.put('subscribers', [SELECT Id, Full_Name__c, Email_Address__c, Unified_Individual__c FROM Email_Subscriber__c WITH USER_MODE ORDER BY Full_Name__c LIMIT 1000]);
+            result.put('pos', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c, Unified_Individual__c FROM POS_Transaction__c WITH USER_MODE ORDER BY Customer_Name__c LIMIT 1000]);
             result.put('unified', [SELECT Id, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c FROM Unified_Individual__c WITH USER_MODE ORDER BY First_Name__c LIMIT 1000]);
             return result;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    /**
+     * @description Fetches Node and Link data for the D3.js Lineage Graph
+     * @param goldenRecordId The ID of the Unified Individual
+     * @return Map of nodes and links
+     */
+    @AuraEnabled
+    public static Map<String, Object> getLineageData(Id goldenRecordId) {
+        try {
+            Map<String, Object> response = new Map<String, Object>();
+            List<Map<String, Object>> nodes = new List<Map<String, Object>>();
+            List<Map<String, Object>> links = new List<Map<String, Object>>();
+            
+            Unified_Individual__c golden = [SELECT Id, First_Name__c, Match_Key__c FROM Unified_Individual__c WHERE Id = :goldenRecordId WITH USER_MODE LIMIT 1];
+            
+            // Add Golden Record Node (Center)
+            nodes.add(new Map<String, Object>{ 'id' => golden.Id, 'group' => 1, 'label' => 'Golden: ' + golden.First_Name__c });
+            
+            // Add Subscribers
+            for (Email_Subscriber__c sub : [SELECT Id, Full_Name__c FROM Email_Subscriber__c WHERE Unified_Individual__c = :goldenRecordId WITH USER_MODE]) {
+                nodes.add(new Map<String, Object>{ 'id' => sub.Id, 'group' => 2, 'label' => 'Email: ' + sub.Full_Name__c });
+                links.add(new Map<String, Object>{ 'source' => sub.Id, 'target' => golden.Id, 'value' => 1 });
+            }
+            
+            // Add POS
+            for (POS_Transaction__c pos : [SELECT Id, Customer_Name__c FROM POS_Transaction__c WHERE Unified_Individual__c = :goldenRecordId WITH USER_MODE]) {
+                nodes.add(new Map<String, Object>{ 'id' => pos.Id, 'group' => 3, 'label' => 'POS: ' + pos.Customer_Name__c });
+                links.add(new Map<String, Object>{ 'source' => pos.Id, 'target' => golden.Id, 'value' => 1 });
+            }
+            
+            response.put('nodes', nodes);
+            response.put('links', links);
+            return response;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -294,6 +331,12 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
             applySubscriberSurvivorship(golden, sub);
             updateContext(nameKey, email, null, golden, state);
             
+            // Set the lookup!
+            // Wait, golden might not have an ID if it's new.
+            // Salesforce allows setting parent relationships by External ID!
+            Unified_Individual__c parentRef = new Unified_Individual__c(Match_Key__c = golden.Match_Key__c);
+            sub.Unified_Individual__r = parentRef;
+            
             sub.Is_Processed__c = true;
             state.recordsToUpdate.add(sub);
         }
@@ -328,6 +371,9 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
             Unified_Individual__c golden = findGoldenRecord(nameKey, null, phone, state);
             applyPOSSurvivorship(golden, txn);
             updateContext(nameKey, null, phone, golden, state);
+            
+            Unified_Individual__c parentRef = new Unified_Individual__c(Match_Key__c = golden.Match_Key__c);
+            txn.Unified_Individual__r = parentRef;
             
             txn.Is_Processed__c = true;
             state.recordsToUpdate.add(txn);

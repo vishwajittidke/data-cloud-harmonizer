@@ -62,4 +62,14 @@
         <field>Unified_Individual__c.Match_Key__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Email_Subscriber__c.Unified_Individual__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>POS_Transaction__c.Unified_Individual__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
 </PermissionSet>
