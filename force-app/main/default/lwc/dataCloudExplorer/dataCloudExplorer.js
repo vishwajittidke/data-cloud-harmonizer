@@ -117,11 +117,14 @@ export default class DataCloudExplorer extends LightningElement {
     currentSourceId = '';
     currentSourceType = '';
 
-    get goldenRecordOptions() {
-        return this.unifiedRecords.map(u => {
-            return { label: u.First_Name__c + ' (' + u.Total_Lifetime_Value__c + ')', value: u.Id };
-        });
-    }
+    pickerDisplayInfo = {
+        primaryField: 'First_Name__c',
+        additionalFields: ['Primary_Email__c']
+    };
+
+    pickerMatchingInfo = {
+        primaryField: { fieldPath: 'First_Name__c' }
+    };
 
     get isMergeDisabled() {
         return !this.selectedGoldenRecordId;
@@ -148,7 +151,7 @@ export default class DataCloudExplorer extends LightningElement {
     handleOpenMergeModal(event) {
         this.currentSourceId = event.target.dataset.id;
         this.currentSourceType = event.target.dataset.type;
-        this.selectedGoldenRecordId = '';
+        this.selectedGoldenRecordId = null;
         this.isMergeModalOpen = true;
     }
 
@@ -157,7 +160,7 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     handleGoldenRecordChange(event) {
-        this.selectedGoldenRecordId = event.detail.value;
+        this.selectedGoldenRecordId = event.detail.recordId;
     }
 
     handleExecuteMerge() {
