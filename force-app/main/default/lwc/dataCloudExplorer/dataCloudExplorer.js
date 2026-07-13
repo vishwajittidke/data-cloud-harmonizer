@@ -228,6 +228,27 @@ export default class DataCloudExplorer extends LightningElement {
                 this.isProcessing = false;
             });
     }
+    handleReset() {
+        this.isProcessing = true;
+        resetDemo()
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Reset Successful', message: 'Demo data cleared.', variant: 'success' }));
+                return refreshApex(this.wiredDataResult);
+            })
+            .catch(err => console.error(err))
+            .finally(() => this.isProcessing = false);
+    }
+
+    handleInjectData() {
+        this.isProcessing = true;
+        injectMockData()
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Data Injected', message: 'Mock data created successfully.', variant: 'success' }));
+                return refreshApex(this.wiredDataResult);
+            })
+            .catch(err => console.error(err))
+            .finally(() => this.isProcessing = false);
+    }
     
     // --- D3 Graph Logic ---
     @track isGraphModalOpen = false;
