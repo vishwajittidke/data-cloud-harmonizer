@@ -125,7 +125,10 @@
                                                         <td>{uni.Primary_Email__c}</td>
                                                         <td>{uni.Primary_Phone__c}</td>
                                                         <td>
-                                                            <lightning-badge label={uni.Confidence_Score__c} icon-name="utility:graph" class="slds-theme_success"></lightning-badge> %
+                                                            <span class="slds-badge slds-theme_success">
+                                                                <lightning-icon icon-name="utility:graph" size="xx-small" class="slds-m-right_xx-small" variant="inverse"></lightning-icon>
+                                                                {uni.Confidence_Score__c}%
+                                                            </span>
                                                         </td>
                                                         <td class="slds-text-color_success" style="font-weight:bold;">${uni.Total_Lifetime_Value__c}</td>
                                                         <td>
