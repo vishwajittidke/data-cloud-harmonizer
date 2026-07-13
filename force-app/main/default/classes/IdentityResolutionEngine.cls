@@ -27,7 +27,22 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     @AuraEnabled
     public static void runHarmonizationAura() {
         try {
-            Database.executeBatch(new IdentityResolutionEngine('Subscriber'), 200);
+            Integer subCount = [SELECT COUNT() FROM Email_Subscriber__c WHERE Is_Processed__c = false];
+            Integer posCount = [SELECT COUNT() FROM POS_Transaction__c WHERE Is_Processed__c = false];
+            
+            if (subCount + posCount < 500 && (subCount + posCount) > 0) {
+                // Synchronous Execution: Bypass async queue overhead for immediate UI feedback
+                IdentityResolutionEngine subEngine = new IdentityResolutionEngine('Subscriber');
+                List<Email_Subscriber__c> subs = [SELECT Id, Full_Name__c, Email_Address__c FROM Email_Subscriber__c WHERE Is_Processed__c = false AND Full_Name__c != null];
+                if (!subs.isEmpty()) subEngine.execute(null, subs);
+                
+                IdentityResolutionEngine posEngine = new IdentityResolutionEngine('POS');
+                List<POS_Transaction__c> pos = [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c FROM POS_Transaction__c WHERE Is_Processed__c = false AND Customer_Name__c != null];
+                if (!pos.isEmpty()) posEngine.execute(null, pos);
+            } else if (subCount + posCount >= 500) {
+                // Asynchronous Execution: Safely bulkify large volumes
+                Database.executeBatch(new IdentityResolutionEngine('Subscriber'), 200);
+            }
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
