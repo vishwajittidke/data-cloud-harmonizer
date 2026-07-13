@@ -4,7 +4,7 @@ import { loadScript } from 'lightning/platformResourceLoader';
 import d3Resource from '@salesforce/resourceUrl/d3';
 import fetchDashboardData from '@salesforce/apex/IdentityResolutionEngine.fetchDashboardData';
 import runHarmonizationAura from '@salesforce/apex/IdentityResolutionEngine.runHarmonizationAura';
-import isBatchRunning from '@salesforce/apex/IdentityResolutionEngine.isBatchRunning';
+import getBatchProgress from '@salesforce/apex/IdentityResolutionEngine.getBatchProgress';
 import resetDemo from '@salesforce/apex/IdentityResolutionEngine.resetDemo';
 import injectMockData from '@salesforce/apex/IdentityResolutionEngine.injectMockData';
 import getLineageData from '@salesforce/apex/IdentityResolutionEngine.getLineageData';
@@ -18,6 +18,7 @@ export default class DataCloudExplorer extends LightningElement {
     @track posRecords = [];
     @track unifiedRecords = [];
     @track isProcessing = false;
+    @track progressMessage = '';
     @track activeTab = 'dashboard';
 
     wiredDataResult;
@@ -58,6 +59,7 @@ export default class DataCloudExplorer extends LightningElement {
             this._safetyTimeoutId = null;
         }
         this.isProcessing = false;
+        this.progressMessage = '';
     }
 
     /**
@@ -84,6 +86,7 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     handleInjectData() {
+        this.progressMessage = 'Injecting Mock Data...';
         this.isProcessing = true;
         this._armSafetyTimeout(30000);
         injectMockData()
@@ -99,6 +102,7 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     handleReset() {
+        this.progressMessage = 'Clearing Demo Data...';
         this.isProcessing = true;
         this._armSafetyTimeout(30000);
         resetDemo()
@@ -114,6 +118,7 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     handleRunHarmonization() {
+        this.progressMessage = 'Starting Harmonization...';
         this.isProcessing = true;
         this._armSafetyTimeout(60000); // 60s max for the entire operation
 
@@ -155,6 +160,7 @@ export default class DataCloudExplorer extends LightningElement {
                         });
                 } else if (result === 'ASYNC') {
                     // Batch was kicked off — enter polling
+                    this.progressMessage = 'Engine Started. Processing large dataset in background...';
                     this.dispatchEvent(
                         new ShowToastEvent({
                             title: 'Engine Started',
@@ -186,14 +192,24 @@ export default class DataCloudExplorer extends LightningElement {
             this._pollTimeoutId = null;
         }
 
-        isBatchRunning()
-            .then(isRunning => {
-                if (isRunning) {
+        getBatchProgress()
+            .then(progress => {
+                if (progress && progress.isRunning) {
+                    
+                    let statusStr = progress.status || 'Processing';
+                    if (progress.total && progress.total > 0) {
+                        // total and processed are number of batches, we can show percentage or fraction
+                        this.progressMessage = `${statusStr}... (Batches processed: ${progress.processed} of ${progress.total})`;
+                    } else {
+                        this.progressMessage = `${statusStr} large dataset...`;
+                    }
+
                     // eslint-disable-next-line @lwc/lwc/no-async-operation
                     this._pollTimeoutId = setTimeout(() => {
                         this.pollBatchStatus();
                     }, 3000);
                 } else {
+                    this.progressMessage = 'Finishing up...';
                     refreshApex(this.wiredDataResult)
                         .then(() => {
                             this._forceStopProcessing();
@@ -309,6 +325,7 @@ export default class DataCloudExplorer extends LightningElement {
         const sourceId = event.target.dataset.id;
         const sourceType = event.target.dataset.type;
         
+        this.progressMessage = 'Unlinking Record...';
         this.isProcessing = true;
         this._armSafetyTimeout(15000);
         

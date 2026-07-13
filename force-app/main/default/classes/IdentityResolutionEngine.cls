@@ -64,19 +64,31 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     }
 
     /**
-     * @description Polls whether a harmonization batch is still processing.
-     * @return Boolean true if running.
+     * @description Polls whether a harmonization batch is still processing, including progress details.
+     * @return Map with isRunning, total, processed, status
      */
     @AuraEnabled
-    public static Boolean isBatchRunning() {
+    public static Map<String, Object> getBatchProgress() {
         try {
-            Integer activeJobs = [
-                SELECT COUNT() FROM AsyncApexJob 
+            List<AsyncApexJob> jobs = [
+                SELECT Status, TotalJobItems, JobItemsProcessed 
+                FROM AsyncApexJob 
                 WHERE JobType = 'BatchApex' 
-                AND Status IN ('Holding', 'Queued', 'Preparing', 'Processing') 
                 AND ApexClass.Name = 'IdentityResolutionEngine'
+                ORDER BY CreatedDate DESC
+                LIMIT 1
             ];
-            return activeJobs > 0;
+            
+            Map<String, Object> result = new Map<String, Object>();
+            if (!jobs.isEmpty() && (jobs[0].Status == 'Holding' || jobs[0].Status == 'Queued' || jobs[0].Status == 'Preparing' || jobs[0].Status == 'Processing')) {
+                result.put('isRunning', true);
+                result.put('total', jobs[0].TotalJobItems);
+                result.put('processed', jobs[0].JobItemsProcessed);
+                result.put('status', jobs[0].Status);
+            } else {
+                result.put('isRunning', false);
+            }
+            return result;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
