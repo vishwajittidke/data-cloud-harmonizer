@@ -203,6 +203,15 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
             String email = 'user' + i + '@example.com';
             String phone = '555-' + String.valueOf(i).leftPad(4, '0');
             
+            // Generate some deliberate typos to show off Fuzzy Matching!
+            if (i == 1) {
+                subs.add(new Email_Subscriber__c(Full_Name__c = 'Jon Doe', Email_Address__c = 'jon.doe@example.com'));
+                txns.add(new POS_Transaction__c(Customer_Name__c = 'John Doe', Phone_Number__c = '555-9999', Total_Spent__c = 100.00));
+            } else if (i == 2) {
+                subs.add(new Email_Subscriber__c(Full_Name__c = 'Catherine Smith', Email_Address__c = 'cat.smith@example.com'));
+                txns.add(new POS_Transaction__c(Customer_Name__c = 'Kathryn Smyth', Phone_Number__c = '555-8888', Total_Spent__c = 250.00));
+            }
+            
             subs.add(new Email_Subscriber__c(Full_Name__c = baseName + ' Smith', Email_Address__c = email));
             
             if (Math.mod(i, 2) == 0) {
@@ -435,11 +444,11 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
         if (String.isBlank(name)) {
             return 'unknown';
         }
-        String clean = name.toLowerCase().replaceAll('[^a-z0-9 ]', '').trim().replaceAll('\\s+', ' ');
-        if(String.isBlank(clean)) {
+        String fuzzyKey = FuzzyMatcher.generateSoundex(name);
+        if (String.isBlank(fuzzyKey)) {
             return 'unknown';
         }
-        return clean.replaceAll('\\s+', ''); 
+        return fuzzyKey;
     }
     
     private static String extractFirstName(String fullName) {
