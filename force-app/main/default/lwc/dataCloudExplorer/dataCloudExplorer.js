@@ -1,6 +1,8 @@
 import { LightningElement, track, wire } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import fetchDashboardData from '@salesforce/apex/IdentityResolutionEngine.fetchDashboardData';
 import runHarmonizationAura from '@salesforce/apex/IdentityResolutionEngine.runHarmonizationAura';
+import isBatchRunning from '@salesforce/apex/IdentityResolutionEngine.isBatchRunning';
 import resetDemo from '@salesforce/apex/IdentityResolutionEngine.resetDemo';
 import injectMockData from '@salesforce/apex/IdentityResolutionEngine.injectMockData';
 import { refreshApex } from '@salesforce/apex';
@@ -50,24 +52,53 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     handleRunHarmonization() {
-        if (!this.hasRawData) {
-            alert('Please inject messy data first!');
-            return;
-        }
-
         this.isProcessing = true;
-        
         runHarmonizationAura()
             .then(() => {
-                return refreshApex(this.wiredDataResult);
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Engine Started',
+                        message: 'Processing identities in the background... please wait.',
+                        variant: 'info'
+                    })
+                );
+                
+                // Start polling the server to wait for BOTH batch jobs (Subscribers and POS) to finish
+                this.pollBatchStatus();
             })
             .catch(error => {
-                console.error('Harmonization failed', error);
-            })
-            .finally(() => {
-                setTimeout(() => {
-                    this.isProcessing = false;
-                }, 1200);
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Error',
+                        message: error.body.message,
+                        variant: 'error'
+                    })
+                );
             });
+    }
+
+    pollBatchStatus() {
+        isBatchRunning()
+            .then(isRunning => {
+                if (isRunning) {
+                    // If jobs are still processing in the queue, check again in 2 seconds
+                    setTimeout(() => {
+                        this.pollBatchStatus();
+                    }, 2000);
+                } else {
+                    // All Batch jobs have finished! Refresh the UI dynamically!
+                    refreshApex(this.wiredDataResult).then(() => {
+                        this.isProcessing = false;
+                        this.dispatchEvent(
+                            new ShowToastEvent({
+                                title: 'Success',
+                                message: 'Data Harmonization Complete! UI Auto-Refreshed.',
+                                variant: 'success'
+                            })
+                        );
+                    });
+                }
+            })
+            .catch(err => console.error(err));
     }
 }
