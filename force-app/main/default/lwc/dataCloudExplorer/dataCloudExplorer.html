@@ -42,10 +42,11 @@
                                                     <td>{sub.Email_Address__c}</td>
                                                     <td>
                                                         <template if:true={sub.Unified_Individual__c}>
-                                                            <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon> Linked
+                                                            <lightning-badge label="Linked" icon-name="utility:check" class="slds-theme_success"></lightning-badge>
+                                                            <lightning-button-icon icon-name="utility:unlink" alternative-text="Unlink from Golden Record" title="Unlink" onclick={handleUnmerge} data-id={sub.Id} data-type="Subscriber" class="slds-m-left_x-small"></lightning-button-icon>
                                                         </template>
                                                         <template if:false={sub.Unified_Individual__c}>
-                                                            <span class="slds-text-color_error">Unlinked</span>
+                                                            <lightning-badge label="Unlinked" class="slds-theme_error"></lightning-badge>
                                                         </template>
                                                     </td>
                                                 </tr>
@@ -67,10 +68,11 @@
                                                     <td>${pos.Total_Spent__c}</td>
                                                     <td>
                                                         <template if:true={pos.Unified_Individual__c}>
-                                                            <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon> Linked
+                                                            <lightning-badge label="Linked" icon-name="utility:check" class="slds-theme_success"></lightning-badge>
+                                                            <lightning-button-icon icon-name="utility:unlink" alternative-text="Unlink from Golden Record" title="Unlink" onclick={handleUnmerge} data-id={pos.Id} data-type="POS" class="slds-m-left_x-small"></lightning-button-icon>
                                                         </template>
                                                         <template if:false={pos.Unified_Individual__c}>
-                                                            <span class="slds-text-color_error">Unlinked</span>
+                                                            <lightning-badge label="Unlinked" class="slds-theme_error"></lightning-badge>
                                                         </template>
                                                     </td>
                                                 </tr>
@@ -141,18 +143,100 @@
                 </lightning-tab>
 
                 <!-- TAB 2: RESOLUTION QUEUE -->
-                <lightning-tab label="Resolution Queue (Manual Merge)" value="queue">
-                    <div class="slds-p-around_medium slds-text-align_center slds-theme_shade slds-m-top_small" style="border: 1px dashed #ccc; border-radius: 4px;">
-                        <lightning-icon icon-name="utility:knowledge_base" size="large" class="slds-m-bottom_small"></lightning-icon>
-                        <h2 class="slds-text-heading_medium">Resolution Queue is Live!</h2>
-                        <p class="slds-m-top_small slds-text-body_regular">
-                            The UI has been successfully updated to show the new Resolution Queue Tab!
-                            Right now, we are displaying the new "Linked/Unlinked" status icons in the left column on the Dashboard Tab to verify our background backend changes actually set the Lookups correctly.
-                        </p>
+                <lightning-tab label="Resolution Queue (Manual Merge)" value="queue" onactive={handleTabChange}>
+                    <div class="slds-m-top_small">
+                        <div class="slds-grid slds-grid_align-spread slds-m-bottom_medium">
+                            <h2 class="slds-text-heading_small slds-text-color_default" style="font-weight: bold;">
+                                <lightning-icon icon-name="utility:slider" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Manual Resolution Queue
+                            </h2>
+                            <lightning-button label="Refresh Queue" variant="neutral" icon-name="utility:refresh" onclick={handleRefreshQueue}></lightning-button>
+                        </div>
+                        
+                        <template if:true={isQueueLoading}>
+                            <lightning-spinner alternative-text="Loading Queue" size="medium"></lightning-spinner>
+                        </template>
+
+                        <div class="slds-grid slds-gutters">
+                            <!-- Unlinked Subscribers -->
+                            <div class="slds-col slds-size_1-of-2">
+                                <div class="slds-box slds-theme_shade">
+                                    <h3 class="slds-text-title_caps slds-m-bottom_x-small">Unlinked Subscribers</h3>
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                                        <thead>
+                                            <tr><th>Name</th><th>Email</th><th>Action</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={unlinkedSubscribers} for:item="sub">
+                                                <tr key={sub.Id}>
+                                                    <td>{sub.Full_Name__c}</td>
+                                                    <td>{sub.Email_Address__c}</td>
+                                                    <td>
+                                                        <lightning-button-icon icon-name="utility:link" alternative-text="Merge to Golden Record" title="Merge to Golden Record" onclick={handleOpenMergeModal} data-id={sub.Id} data-type="Subscriber"></lightning-button-icon>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Unlinked POS -->
+                            <div class="slds-col slds-size_1-of-2">
+                                <div class="slds-box slds-theme_shade">
+                                    <h3 class="slds-text-title_caps slds-m-bottom_x-small">Unlinked POS Transactions</h3>
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                                        <thead>
+                                            <tr><th>Customer</th><th>Phone</th><th>Action</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={unlinkedPOS} for:item="pos">
+                                                <tr key={pos.Id}>
+                                                    <td>{pos.Customer_Name__c}</td>
+                                                    <td>{pos.Phone_Number__c}</td>
+                                                    <td>
+                                                        <lightning-button-icon icon-name="utility:link" alternative-text="Merge to Golden Record" title="Merge to Golden Record" onclick={handleOpenMergeModal} data-id={pos.Id} data-type="POS"></lightning-button-icon>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </lightning-tab>
             </lightning-tabset>
         </div>
+        
+        <!-- MERGE MODAL -->
+        <template if:true={isMergeModalOpen}>
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseMergeModal}>
+                            <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        </button>
+                        <h2 class="slds-text-heading_medium">Select Target Golden Record</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" style="min-height: 200px;">
+                        <lightning-combobox
+                            name="goldenRecord"
+                            label="Target Golden Record"
+                            value={selectedGoldenRecordId}
+                            placeholder="Select Golden Record..."
+                            options={goldenRecordOptions}
+                            onchange={handleGoldenRecordChange}>
+                        </lightning-combobox>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button label="Cancel" variant="neutral" onclick={handleCloseMergeModal} class="slds-m-right_small"></lightning-button>
+                        <lightning-button label="Merge" variant="brand" onclick={handleExecuteMerge} disabled={isMergeDisabled}></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
         
         <!-- D3 GRAPH MODAL -->
         <template if:true={isGraphModalOpen}>

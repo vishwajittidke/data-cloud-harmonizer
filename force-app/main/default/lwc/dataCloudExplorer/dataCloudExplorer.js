@@ -8,6 +8,9 @@ import isBatchRunning from '@salesforce/apex/IdentityResolutionEngine.isBatchRun
 import resetDemo from '@salesforce/apex/IdentityResolutionEngine.resetDemo';
 import injectMockData from '@salesforce/apex/IdentityResolutionEngine.injectMockData';
 import getLineageData from '@salesforce/apex/IdentityResolutionEngine.getLineageData';
+import getResolutionQueue from '@salesforce/apex/IdentityResolutionEngine.getResolutionQueue';
+import manualMerge from '@salesforce/apex/IdentityResolutionEngine.manualMerge';
+import manualUnmerge from '@salesforce/apex/IdentityResolutionEngine.manualUnmerge';
 import { refreshApex } from '@salesforce/apex';
 
 export default class DataCloudExplorer extends LightningElement {
@@ -102,6 +105,125 @@ export default class DataCloudExplorer extends LightningElement {
                 }
             })
             .catch(err => console.error(err));
+    }
+    
+    // --- Resolution Queue Logic ---
+    @track unlinkedSubscribers = [];
+    @track unlinkedPOS = [];
+    @track isQueueLoading = false;
+    @track isMergeModalOpen = false;
+    @track selectedGoldenRecordId = '';
+    
+    currentSourceId = '';
+    currentSourceType = '';
+
+    get goldenRecordOptions() {
+        return this.unifiedRecords.map(u => {
+            return { label: u.First_Name__c + ' (' + u.Total_Lifetime_Value__c + ')', value: u.Id };
+        });
+    }
+
+    get isMergeDisabled() {
+        return !this.selectedGoldenRecordId;
+    }
+
+    handleTabChange(event) {
+        this.activeTab = event.target.value;
+        if (this.activeTab === 'queue') {
+            this.handleRefreshQueue();
+        }
+    }
+
+    handleRefreshQueue() {
+        this.isQueueLoading = true;
+        getResolutionQueue()
+            .then(result => {
+                this.unlinkedSubscribers = result.unlinkedSubscribers || [];
+                this.unlinkedPOS = result.unlinkedPOS || [];
+            })
+            .catch(err => console.error(err))
+            .finally(() => this.isQueueLoading = false);
+    }
+
+    handleOpenMergeModal(event) {
+        this.currentSourceId = event.target.dataset.id;
+        this.currentSourceType = event.target.dataset.type;
+        this.selectedGoldenRecordId = '';
+        this.isMergeModalOpen = true;
+    }
+
+    handleCloseMergeModal() {
+        this.isMergeModalOpen = false;
+    }
+
+    handleGoldenRecordChange(event) {
+        this.selectedGoldenRecordId = event.detail.value;
+    }
+
+    handleExecuteMerge() {
+        this.isQueueLoading = true;
+        this.handleCloseMergeModal();
+        
+        manualMerge({ 
+            sourceId: this.currentSourceId, 
+            objectType: this.currentSourceType, 
+            goldenId: this.selectedGoldenRecordId 
+        })
+        .then(() => {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Merge Successful',
+                    message: 'Record successfully linked to Golden Record.',
+                    variant: 'success'
+                })
+            );
+            this.handleRefreshQueue();
+            return refreshApex(this.wiredDataResult);
+        })
+        .catch(err => {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Merge Failed',
+                    message: err.body ? err.body.message : err.message,
+                    variant: 'error'
+                })
+            );
+        })
+        .finally(() => {
+            this.isQueueLoading = false;
+        });
+    }
+
+    handleUnmerge(event) {
+        const sourceId = event.target.dataset.id;
+        const sourceType = event.target.dataset.type;
+        
+        this.isProcessing = true;
+        
+        manualUnmerge({ sourceId: sourceId, objectType: sourceType })
+            .then(() => {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Unlinked',
+                        message: 'Record unlinked. You can find it in the Resolution Queue.',
+                        variant: 'success'
+                    })
+                );
+                return refreshApex(this.wiredDataResult);
+            })
+            .catch(err => {
+                console.error(err);
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Unlink Failed',
+                        message: err.body ? err.body.message : err.message,
+                        variant: 'error'
+                    })
+                );
+            })
+            .finally(() => {
+                this.isProcessing = false;
+            });
     }
     
     // --- D3 Graph Logic ---

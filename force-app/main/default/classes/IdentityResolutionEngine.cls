@@ -108,6 +108,57 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     }
 
     /**
+     * @description Fetches all unlinked raw records for the Resolution Queue
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getResolutionQueue() {
+        try {
+            Map<String, Object> queue = new Map<String, Object>();
+            queue.put('unlinkedSubscribers', [SELECT Id, Full_Name__c, Email_Address__c FROM Email_Subscriber__c WHERE Unified_Individual__c = null WITH USER_MODE LIMIT 500]);
+            queue.put('unlinkedPOS', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c FROM POS_Transaction__c WHERE Unified_Individual__c = null WITH USER_MODE LIMIT 500]);
+            return queue;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    /**
+     * @description Manually links a raw record to a Golden Record
+     */
+    @AuraEnabled
+    public static void manualMerge(Id sourceId, String objectType, Id goldenId) {
+        try {
+            if (objectType == 'Subscriber') {
+                Email_Subscriber__c sub = new Email_Subscriber__c(Id = sourceId, Unified_Individual__c = goldenId, Is_Processed__c = true);
+                update as user sub;
+            } else if (objectType == 'POS') {
+                POS_Transaction__c pos = new POS_Transaction__c(Id = sourceId, Unified_Individual__c = goldenId, Is_Processed__c = true);
+                update as user pos;
+            }
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    /**
+     * @description Manually unlinks a raw record from its Golden Record
+     */
+    @AuraEnabled
+    public static void manualUnmerge(Id sourceId, String objectType) {
+        try {
+            if (objectType == 'Subscriber') {
+                Email_Subscriber__c sub = new Email_Subscriber__c(Id = sourceId, Unified_Individual__c = null, Is_Processed__c = false);
+                update as user sub;
+            } else if (objectType == 'POS') {
+                POS_Transaction__c pos = new POS_Transaction__c(Id = sourceId, Unified_Individual__c = null, Is_Processed__c = false);
+                update as user pos;
+            }
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    /**
      * @description Resets the demo data by clearing objects.
      */
     @AuraEnabled
