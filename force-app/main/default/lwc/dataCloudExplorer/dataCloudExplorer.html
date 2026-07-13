@@ -110,19 +110,26 @@
                                                     <th>First Name</th>
                                                     <th>Primary Email</th>
                                                     <th>Primary Phone</th>
+                                                    <th>Match Confidence</th>
                                                     <th>Lifetime Value</th>
                                                     <th>Lineage</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <template for:each={unifiedRecords} for:item="u">
-                                                    <tr key={u.Id}>
-                                                        <td><strong>{u.First_Name__c}</strong></td>
-                                                        <td>{u.Primary_Email__c}</td>
-                                                        <td>{u.Primary_Phone__c}</td>
-                                                        <td class="slds-text-color_success" style="font-weight: bold;">${u.Total_Lifetime_Value__c}</td>
+                                                <template for:each={unifiedRecords} for:item="uni">
+                                                    <tr key={uni.Id}>
+                                                        <td class="slds-text-heading_small">
+                                                            <lightning-icon icon-name="standard:user" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                                            {uni.First_Name__c}
+                                                        </td>
+                                                        <td>{uni.Primary_Email__c}</td>
+                                                        <td>{uni.Primary_Phone__c}</td>
                                                         <td>
-                                                            <lightning-button-icon icon-name="utility:graph" alternative-text="View Lineage Graph" title="View Lineage Graph" onclick={handleOpenGraph} data-id={u.Id}></lightning-button-icon>
+                                                            <lightning-badge label={uni.Confidence_Score__c} icon-name="utility:graph" class="slds-theme_success"></lightning-badge> %
+                                                        </td>
+                                                        <td class="slds-text-color_success" style="font-weight:bold;">${uni.Total_Lifetime_Value__c}</td>
+                                                        <td>
+                                                            <lightning-button-icon icon-name="utility:graph" alternative-text="View Lineage Graph" title="View Lineage Graph" onclick={handleOpenGraph} data-id={uni.Id}></lightning-button-icon>
                                                         </td>
                                                     </tr>
                                                 </template>

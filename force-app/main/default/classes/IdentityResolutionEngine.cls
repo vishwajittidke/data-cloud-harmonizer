@@ -63,7 +63,7 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
             Map<String, Object> result = new Map<String, Object>();
             result.put('subscribers', [SELECT Id, Full_Name__c, Email_Address__c, Unified_Individual__c FROM Email_Subscriber__c WITH USER_MODE ORDER BY Full_Name__c LIMIT 1000]);
             result.put('pos', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c, Unified_Individual__c FROM POS_Transaction__c WITH USER_MODE ORDER BY Customer_Name__c LIMIT 1000]);
-            result.put('unified', [SELECT Id, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c FROM Unified_Individual__c WITH USER_MODE ORDER BY First_Name__c LIMIT 1000]);
+            result.put('unified', [SELECT Id, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c, Confidence_Score__c FROM Unified_Individual__c WITH USER_MODE ORDER BY First_Name__c LIMIT 1000]);
             return result;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
@@ -318,7 +318,7 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
 
     private void buildProfileIndex(BatchState state) {
         List<Unified_Individual__c> existingProfiles = [
-            SELECT Id, Match_Key__c, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c 
+            SELECT Id, Match_Key__c, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c, Confidence_Score__c
             FROM Unified_Individual__c 
             WHERE Match_Key__c IN :state.names 
             OR Primary_Email__c IN :state.emails 
@@ -340,16 +340,31 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     }
 
     private Unified_Individual__c findGoldenRecord(String nameKey, String email, String phone, BatchState state) {
+        Unified_Individual__c golden = null;
+        Decimal matchScore = 100.0;
+
         if (String.isNotBlank(email) && state.profileIndex.containsKey(email)) {
-            return state.profileIndex.get(email);
+            golden = state.profileIndex.get(email);
+            matchScore = 95.0;
+        } else if (String.isNotBlank(phone) && state.profileIndex.containsKey(phone)) {
+            golden = state.profileIndex.get(phone);
+            matchScore = 85.0;
+        } else if (state.profileIndex.containsKey(nameKey)) {
+            golden = state.profileIndex.get(nameKey);
+            matchScore = 60.0;
         }
-        if (String.isNotBlank(phone) && state.profileIndex.containsKey(phone)) {
-            return state.profileIndex.get(phone);
+
+        if (golden == null) {
+            golden = new Unified_Individual__c(Match_Key__c = nameKey);
+            golden.Confidence_Score__c = 100.0;
+        } else {
+            if (golden.Confidence_Score__c == null) {
+                golden.Confidence_Score__c = 100.0;
+            }
+            // Average the confidence score over time
+            golden.Confidence_Score__c = (golden.Confidence_Score__c + matchScore) / 2.0;
         }
-        if (state.profileIndex.containsKey(nameKey)) {
-            return state.profileIndex.get(nameKey);
-        }
-        Unified_Individual__c golden = new Unified_Individual__c(Match_Key__c = nameKey);
+
         if (golden.Total_Lifetime_Value__c == null) {
             golden.Total_Lifetime_Value__c = 0;
         }
