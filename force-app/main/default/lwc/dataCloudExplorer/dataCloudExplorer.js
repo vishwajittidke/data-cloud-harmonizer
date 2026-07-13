@@ -22,6 +22,7 @@ export default class DataCloudExplorer extends LightningElement {
 
     wiredDataResult;
     _pollTimeoutId = null;
+    _safetyTimeoutId = null;
 
     @wire(fetchDashboardData)
     wiredData(result) {
@@ -43,8 +44,48 @@ export default class DataCloudExplorer extends LightningElement {
         return this.unifiedRecords && this.unifiedRecords.length > 0;
     }
 
+    /**
+     * Forces isProcessing = false. Called as a safety net to guarantee
+     * the spinner can never get permanently stuck.
+     */
+    _forceStopProcessing() {
+        if (this._pollTimeoutId) {
+            clearTimeout(this._pollTimeoutId);
+            this._pollTimeoutId = null;
+        }
+        if (this._safetyTimeoutId) {
+            clearTimeout(this._safetyTimeoutId);
+            this._safetyTimeoutId = null;
+        }
+        this.isProcessing = false;
+    }
+
+    /**
+     * Arms a safety timeout. If the spinner is still active after maxMs,
+     * force-kill it and show an error toast.
+     */
+    _armSafetyTimeout(maxMs) {
+        if (this._safetyTimeoutId) {
+            clearTimeout(this._safetyTimeoutId);
+        }
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this._safetyTimeoutId = setTimeout(() => {
+            if (this.isProcessing) {
+                this._forceStopProcessing();
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Timeout',
+                        message: 'Operation timed out. Please try again.',
+                        variant: 'warning'
+                    })
+                );
+            }
+        }, maxMs);
+    }
+
     handleInjectData() {
         this.isProcessing = true;
+        this._armSafetyTimeout(30000);
         injectMockData()
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({ title: 'Data Injected', message: 'Mock data created successfully.', variant: 'success' }));
@@ -54,11 +95,12 @@ export default class DataCloudExplorer extends LightningElement {
                 console.error(err);
                 this.dispatchEvent(new ShowToastEvent({ title: 'Error', message: err.body ? err.body.message : err.message, variant: 'error' }));
             })
-            .finally(() => { this.isProcessing = false; });
+            .finally(() => { this._forceStopProcessing(); });
     }
 
     handleReset() {
         this.isProcessing = true;
+        this._armSafetyTimeout(30000);
         resetDemo()
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({ title: 'Reset Successful', message: 'Demo data cleared.', variant: 'success' }));
@@ -68,44 +110,66 @@ export default class DataCloudExplorer extends LightningElement {
                 console.error(err);
                 this.dispatchEvent(new ShowToastEvent({ title: 'Error', message: err.body ? err.body.message : err.message, variant: 'error' }));
             })
-            .finally(() => { this.isProcessing = false; });
+            .finally(() => { this._forceStopProcessing(); });
     }
 
     handleRunHarmonization() {
         this.isProcessing = true;
+        this._armSafetyTimeout(60000); // 60s max for the entire operation
+
         runHarmonizationAura()
-            .then(() => {
-                // runHarmonizationAura now processes synchronously for <500 records.
-                // Check once if a batch is still running (for large datasets).
-                return isBatchRunning();
-            })
-            .then(isRunning => {
-                if (isRunning) {
-                    // Large dataset: batch was kicked off, poll for completion
+            .then(result => {
+                if (result === 'EMPTY') {
+                    // Nothing to process — kill spinner immediately
+                    this._forceStopProcessing();
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'No Data',
+                            message: 'No unprocessed records found. Inject messy data first!',
+                            variant: 'warning'
+                        })
+                    );
+                } else if (result === 'SYNC') {
+                    // Already completed synchronously — refresh UI and kill spinner
+                    refreshApex(this.wiredDataResult)
+                        .then(() => {
+                            this._forceStopProcessing();
+                            this.dispatchEvent(
+                                new ShowToastEvent({
+                                    title: 'Success',
+                                    message: 'Data Harmonization Complete!',
+                                    variant: 'success'
+                                })
+                            );
+                        })
+                        .catch(() => {
+                            // Even if refreshApex fails, kill spinner and reload data manually
+                            this._forceStopProcessing();
+                            this.dispatchEvent(
+                                new ShowToastEvent({
+                                    title: 'Done',
+                                    message: 'Harmonization complete. Refresh page to see results.',
+                                    variant: 'info'
+                                })
+                            );
+                        });
+                } else if (result === 'ASYNC') {
+                    // Batch was kicked off — enter polling
                     this.dispatchEvent(
                         new ShowToastEvent({
                             title: 'Engine Started',
-                            message: 'Processing large dataset in background... please wait.',
+                            message: 'Processing large dataset in background...',
                             variant: 'info'
                         })
                     );
                     this.pollBatchStatus();
                 } else {
-                    // Small dataset: already completed synchronously, just refresh UI
-                    return refreshApex(this.wiredDataResult).then(() => {
-                        this.isProcessing = false;
-                        this.dispatchEvent(
-                            new ShowToastEvent({
-                                title: 'Success',
-                                message: 'Data Harmonization Complete!',
-                                variant: 'success'
-                            })
-                        );
-                    });
+                    // Unknown result — kill spinner
+                    this._forceStopProcessing();
                 }
             })
             .catch(error => {
-                this.isProcessing = false;
+                this._forceStopProcessing();
                 this.dispatchEvent(
                     new ShowToastEvent({
                         title: 'Error',
@@ -117,7 +181,6 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     pollBatchStatus() {
-        // Safety: clear any previous pending poll
         if (this._pollTimeoutId) {
             clearTimeout(this._pollTimeoutId);
             this._pollTimeoutId = null;
@@ -126,13 +189,14 @@ export default class DataCloudExplorer extends LightningElement {
         isBatchRunning()
             .then(isRunning => {
                 if (isRunning) {
+                    // eslint-disable-next-line @lwc/lwc/no-async-operation
                     this._pollTimeoutId = setTimeout(() => {
                         this.pollBatchStatus();
                     }, 3000);
                 } else {
                     refreshApex(this.wiredDataResult)
                         .then(() => {
-                            this.isProcessing = false;
+                            this._forceStopProcessing();
                             this.dispatchEvent(
                                 new ShowToastEvent({
                                     title: 'Success',
@@ -141,15 +205,13 @@ export default class DataCloudExplorer extends LightningElement {
                                 })
                             );
                         })
-                        .catch(err => {
-                            this.isProcessing = false;
-                            console.error(err);
+                        .catch(() => {
+                            this._forceStopProcessing();
                         });
                 }
             })
-            .catch(err => {
-                this.isProcessing = false;
-                console.error('Polling error', err);
+            .catch(() => {
+                this._forceStopProcessing();
             });
     }
     
@@ -248,6 +310,7 @@ export default class DataCloudExplorer extends LightningElement {
         const sourceType = event.target.dataset.type;
         
         this.isProcessing = true;
+        this._armSafetyTimeout(15000);
         
         manualUnmerge({ sourceId: sourceId, objectType: sourceType })
             .then(() => {
@@ -271,7 +334,7 @@ export default class DataCloudExplorer extends LightningElement {
                 );
             })
             .finally(() => {
-                this.isProcessing = false;
+                this._forceStopProcessing();
             });
     }
     
@@ -307,13 +370,11 @@ export default class DataCloudExplorer extends LightningElement {
     }
 
     renderD3Graph(data) {
-        // Wait for DOM to render the manual div
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
             const container = this.template.querySelector('.d3-container');
             if (!container) return;
             
-            // Clear previous graph
             container.innerHTML = '';
             
             const width = container.clientWidth || 800;
@@ -348,9 +409,9 @@ export default class DataCloudExplorer extends LightningElement {
                 .join('circle')
                 .attr('r', d => d.group === 1 ? 25 : 15)
                 .attr('fill', d => {
-                    if (d.group === 1) return '#FFB75D'; // Golden Record
-                    if (d.group === 2) return '#4BC076'; // Subscriber
-                    return '#54698D'; // POS
+                    if (d.group === 1) return '#FFB75D';
+                    if (d.group === 2) return '#4BC076';
+                    return '#54698D';
                 })
                 .call(this.drag(simulation));
                 
