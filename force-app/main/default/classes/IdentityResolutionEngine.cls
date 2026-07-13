@@ -34,6 +34,14 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     }
 
     /**
+     * @description Entry point for Lightning Flows (Scheduled or Autolaunched).
+     */
+    @InvocableMethod(label='Run Data Harmonization Batch' description='Kicks off the Identity Resolution Engine asynchronously to merge raw records.')
+    public static void runHarmonizationFlow() {
+        Database.executeBatch(new IdentityResolutionEngine('Subscriber'), 200);
+    }
+
+    /**
      * @description Polls whether a harmonization batch is still processing.
      * @return Boolean true if running.
      */
