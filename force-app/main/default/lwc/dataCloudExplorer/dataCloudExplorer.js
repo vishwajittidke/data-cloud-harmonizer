@@ -21,6 +21,7 @@ export default class DataCloudExplorer extends LightningElement {
     @track activeTab = 'dashboard';
 
     wiredDataResult;
+    _pollTimeoutId = null;
 
     @wire(fetchDashboardData)
     wiredData(result) {
@@ -45,34 +46,66 @@ export default class DataCloudExplorer extends LightningElement {
     handleInjectData() {
         this.isProcessing = true;
         injectMockData()
-            .then(() => refreshApex(this.wiredDataResult))
-            .catch(err => console.error(err))
-            .finally(() => this.isProcessing = false);
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Data Injected', message: 'Mock data created successfully.', variant: 'success' }));
+                return refreshApex(this.wiredDataResult);
+            })
+            .catch(err => {
+                console.error(err);
+                this.dispatchEvent(new ShowToastEvent({ title: 'Error', message: err.body ? err.body.message : err.message, variant: 'error' }));
+            })
+            .finally(() => { this.isProcessing = false; });
     }
 
     handleReset() {
         this.isProcessing = true;
         resetDemo()
-            .then(() => refreshApex(this.wiredDataResult))
-            .catch(err => console.error(err))
-            .finally(() => this.isProcessing = false);
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Reset Successful', message: 'Demo data cleared.', variant: 'success' }));
+                return refreshApex(this.wiredDataResult);
+            })
+            .catch(err => {
+                console.error(err);
+                this.dispatchEvent(new ShowToastEvent({ title: 'Error', message: err.body ? err.body.message : err.message, variant: 'error' }));
+            })
+            .finally(() => { this.isProcessing = false; });
     }
 
     handleRunHarmonization() {
         this.isProcessing = true;
         runHarmonizationAura()
             .then(() => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Engine Started',
-                        message: 'Processing identities in the background... please wait.',
-                        variant: 'info'
-                    })
-                );
-                
-                this.pollBatchStatus();
+                // runHarmonizationAura now processes synchronously for <500 records.
+                // Check once if a batch is still running (for large datasets).
+                return isBatchRunning();
+            })
+            .then(isRunning => {
+                if (isRunning) {
+                    // Large dataset: batch was kicked off, poll for completion
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Engine Started',
+                            message: 'Processing large dataset in background... please wait.',
+                            variant: 'info'
+                        })
+                    );
+                    this.pollBatchStatus();
+                } else {
+                    // Small dataset: already completed synchronously, just refresh UI
+                    return refreshApex(this.wiredDataResult).then(() => {
+                        this.isProcessing = false;
+                        this.dispatchEvent(
+                            new ShowToastEvent({
+                                title: 'Success',
+                                message: 'Data Harmonization Complete!',
+                                variant: 'success'
+                            })
+                        );
+                    });
+                }
             })
             .catch(error => {
+                this.isProcessing = false;
                 this.dispatchEvent(
                     new ShowToastEvent({
                         title: 'Error',
@@ -80,17 +113,22 @@ export default class DataCloudExplorer extends LightningElement {
                         variant: 'error'
                     })
                 );
-                this.isProcessing = false;
             });
     }
 
     pollBatchStatus() {
+        // Safety: clear any previous pending poll
+        if (this._pollTimeoutId) {
+            clearTimeout(this._pollTimeoutId);
+            this._pollTimeoutId = null;
+        }
+
         isBatchRunning()
             .then(isRunning => {
                 if (isRunning) {
-                    setTimeout(() => {
+                    this._pollTimeoutId = setTimeout(() => {
                         this.pollBatchStatus();
-                    }, 2000);
+                    }, 3000);
                 } else {
                     refreshApex(this.wiredDataResult)
                         .then(() => {
@@ -106,19 +144,12 @@ export default class DataCloudExplorer extends LightningElement {
                         .catch(err => {
                             this.isProcessing = false;
                             console.error(err);
-                            this.dispatchEvent(
-                                new ShowToastEvent({
-                                    title: 'Error refreshing UI',
-                                    message: err.body ? err.body.message : err.message,
-                                    variant: 'error'
-                                })
-                            );
                         });
                 }
             })
             .catch(err => {
                 this.isProcessing = false;
-                console.error(err);
+                console.error('Polling error', err);
             });
     }
     
@@ -160,7 +191,7 @@ export default class DataCloudExplorer extends LightningElement {
                 this.unlinkedPOS = result.unlinkedPOS || [];
             })
             .catch(err => console.error(err))
-            .finally(() => this.isQueueLoading = false);
+            .finally(() => { this.isQueueLoading = false; });
     }
 
     handleOpenMergeModal(event) {
@@ -243,27 +274,6 @@ export default class DataCloudExplorer extends LightningElement {
                 this.isProcessing = false;
             });
     }
-    handleReset() {
-        this.isProcessing = true;
-        resetDemo()
-            .then(() => {
-                this.dispatchEvent(new ShowToastEvent({ title: 'Reset Successful', message: 'Demo data cleared.', variant: 'success' }));
-                return refreshApex(this.wiredDataResult);
-            })
-            .catch(err => console.error(err))
-            .finally(() => this.isProcessing = false);
-    }
-
-    handleInjectData() {
-        this.isProcessing = true;
-        injectMockData()
-            .then(() => {
-                this.dispatchEvent(new ShowToastEvent({ title: 'Data Injected', message: 'Mock data created successfully.', variant: 'success' }));
-                return refreshApex(this.wiredDataResult);
-            })
-            .catch(err => console.error(err))
-            .finally(() => this.isProcessing = false);
-    }
     
     // --- D3 Graph Logic ---
     @track isGraphModalOpen = false;
@@ -298,6 +308,7 @@ export default class DataCloudExplorer extends LightningElement {
 
     renderD3Graph(data) {
         // Wait for DOM to render the manual div
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
             const container = this.template.querySelector('.d3-container');
             if (!container) return;
@@ -308,12 +319,14 @@ export default class DataCloudExplorer extends LightningElement {
             const width = container.clientWidth || 800;
             const height = container.clientHeight || 500;
             
+            // eslint-disable-next-line no-undef
             const svg = d3.select(container)
                 .append('svg')
                 .attr('width', '100%')
                 .attr('height', '100%')
                 .attr('viewBox', [0, 0, width, height]);
                 
+            // eslint-disable-next-line no-undef
             const simulation = d3.forceSimulation(data.nodes)
                 .force('link', d3.forceLink(data.links).id(d => d.id).distance(150))
                 .force('charge', d3.forceManyBody().strength(-400))
@@ -385,6 +398,7 @@ export default class DataCloudExplorer extends LightningElement {
             event.subject.fx = null;
             event.subject.fy = null;
         }
+        // eslint-disable-next-line no-undef
         return d3.drag()
             .on('start', dragstarted)
             .on('drag', dragged)
