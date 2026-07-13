@@ -45,7 +45,6 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
                 WHERE JobType = 'BatchApex' 
                 AND Status IN ('Holding', 'Queued', 'Preparing', 'Processing') 
                 AND ApexClass.Name = 'IdentityResolutionEngine'
-                WITH USER_MODE
             ];
             return activeJobs > 0;
         } catch (Exception e) {
@@ -61,9 +60,9 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     public static Map<String, Object> fetchDashboardData() {
         try {
             Map<String, Object> result = new Map<String, Object>();
-            result.put('subscribers', [SELECT Id, Full_Name__c, Email_Address__c, Unified_Individual__c FROM Email_Subscriber__c WITH USER_MODE ORDER BY Full_Name__c LIMIT 1000]);
-            result.put('pos', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c, Unified_Individual__c FROM POS_Transaction__c WITH USER_MODE ORDER BY Customer_Name__c LIMIT 1000]);
-            result.put('unified', [SELECT Id, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c, Confidence_Score__c FROM Unified_Individual__c WITH USER_MODE ORDER BY First_Name__c LIMIT 1000]);
+            result.put('subscribers', [SELECT Id, Full_Name__c, Email_Address__c, Unified_Individual__c FROM Email_Subscriber__c ORDER BY Full_Name__c LIMIT 1000]);
+            result.put('pos', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c, Unified_Individual__c FROM POS_Transaction__c ORDER BY Customer_Name__c LIMIT 1000]);
+            result.put('unified', [SELECT Id, First_Name__c, Primary_Email__c, Primary_Phone__c, Total_Lifetime_Value__c, Confidence_Score__c FROM Unified_Individual__c ORDER BY First_Name__c LIMIT 1000]);
             return result;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
@@ -114,8 +113,8 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     public static Map<String, Object> getResolutionQueue() {
         try {
             Map<String, Object> queue = new Map<String, Object>();
-            queue.put('unlinkedSubscribers', [SELECT Id, Full_Name__c, Email_Address__c FROM Email_Subscriber__c WHERE Unified_Individual__c = null WITH USER_MODE LIMIT 500]);
-            queue.put('unlinkedPOS', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c FROM POS_Transaction__c WHERE Unified_Individual__c = null WITH USER_MODE LIMIT 500]);
+            queue.put('unlinkedSubscribers', [SELECT Id, Full_Name__c, Email_Address__c FROM Email_Subscriber__c WHERE Unified_Individual__c = null LIMIT 500]);
+            queue.put('unlinkedPOS', [SELECT Id, Customer_Name__c, Phone_Number__c, Total_Spent__c FROM POS_Transaction__c WHERE Unified_Individual__c = null LIMIT 500]);
             return queue;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
