@@ -110,7 +110,7 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
     /**
      * @description Fetches all unlinked raw records for the Resolution Queue
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static Map<String, Object> getResolutionQueue() {
         try {
             Map<String, Object> queue = new Map<String, Object>();
