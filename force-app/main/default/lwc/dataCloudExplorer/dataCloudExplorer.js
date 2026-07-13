@@ -92,19 +92,34 @@ export default class DataCloudExplorer extends LightningElement {
                         this.pollBatchStatus();
                     }, 2000);
                 } else {
-                    refreshApex(this.wiredDataResult).then(() => {
-                        this.isProcessing = false;
-                        this.dispatchEvent(
-                            new ShowToastEvent({
-                                title: 'Success',
-                                message: 'Data Harmonization Complete! UI Auto-Refreshed.',
-                                variant: 'success'
-                            })
-                        );
-                    });
+                    refreshApex(this.wiredDataResult)
+                        .then(() => {
+                            this.isProcessing = false;
+                            this.dispatchEvent(
+                                new ShowToastEvent({
+                                    title: 'Success',
+                                    message: 'Data Harmonization Complete! UI Auto-Refreshed.',
+                                    variant: 'success'
+                                })
+                            );
+                        })
+                        .catch(err => {
+                            this.isProcessing = false;
+                            console.error(err);
+                            this.dispatchEvent(
+                                new ShowToastEvent({
+                                    title: 'Error refreshing UI',
+                                    message: err.body ? err.body.message : err.message,
+                                    variant: 'error'
+                                })
+                            );
+                        });
                 }
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                this.isProcessing = false;
+                console.error(err);
+            });
     }
     
     // --- Resolution Queue Logic ---
