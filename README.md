@@ -4,87 +4,78 @@
 ![LWC](https://img.shields.io/badge/LWC-F26522?style=for-the-badge&logo=salesforce&logoColor=white)
 ![Apex](https://img.shields.io/badge/Apex-1798c1?style=for-the-badge)
 
-**An enterprise-grade Identity Resolution engine and Data Cloud simulation built natively on Salesforce.**
+**A Salesforce app that cleans, merges, and unifies your customer data.**
 
-This project unifies disparate data sources, performs complex identity resolution using fuzzy matching algorithms, visualizes data lineage, and triggers real-time event-driven automations.
+This project acts like a mini version of Salesforce Data Cloud. It takes customer records from different places (like store purchases and email lists), finds the duplicates even if their names are spelled differently, and merges them into one single "Golden Record". 
 
 ---
 
-## 📐 Architecture Flow
+## 📐 How It Works
 
 ```mermaid
 graph TD
-    A[🛒 POS Transactions] -->|Ingest| C(⚙️ Identity Resolution Engine)
-    B[📧 Email Subscribers] -->|Ingest| C
-    C -->|Soundex Algorithm| D{Fuzzy Match?}
-    D -->|Yes| E[🥇 Unified Golden Record]
-    D -->|No| F[🥇 New Golden Record]
-    E -->|LTV > $200| G((⚡ Platform Event))
+    A[🛒 Store Purchases] -->|Read Data| C(⚙️ Merge Engine)
+    B[📧 Email Lists] -->|Read Data| C
+    C -->|Check Spelling| D{Is it a duplicate?}
+    D -->|Yes| E[🥇 Update Existing Profile]
+    D -->|No| F[🥇 Create New Profile]
+    E -->|Spent over $200?| G((⚡ Send Alert))
     G -->|Trigger| H[🌊 Salesforce Flow]
-    H -->|Action| I[✅ Create Task for AE]
-    E --> J[📊 LWC Dashboard w/ D3.js]
-    E --> K[🤖 Agentforce AI Insights]
+    H -->|Action| I[✅ Create Task for Sales Rep]
+    E --> J[📊 Show Graph Dashboard]
+    E --> K[🤖 Get AI Summary]
 ```
 
 ---
 
-## 🚀 Core Capabilities
+## 🚀 Main Features
 
-| Feature | Description | Tech Stack |
+| Feature | Description | Tech Used |
 | :--- | :--- | :--- |
-| **Fuzzy Matching** | Uses the **Soundex algorithm** in Apex to resolve spelling variations across data sources (e.g., "Kathryn" -> "Catherine"). | `Batch Apex` |
-| **Data Lineage UI** | A premium custom dashboard using **D3.js** to visually map how disparate records merge into a single Unified Profile. | `LWC`, `D3.js` |
-| **AI Insights** | Provides generative AI summaries evaluating customer value and match confidence scores. | `Apex`, `LWC` |
-| **Event-Driven Actions**| Fires `High_Value_Unified__e` Platform Events when a profile exceeds $200 LTV, instantly triggering follow-up Tasks. | `Platform Events`, `Flow` |
-| **Secure REST API** | A bulkified endpoint (`/v1/UnifiedProfile/`) for external querying, strictly enforcing Field-Level Security. | `Apex REST`, `WITH USER_MODE` |
+| **Smart Merging** | Uses an algorithm to match names even if they are spelled wrong (e.g., matching "Kathryn" with "Catherine"). | `Batch Apex` |
+| **Visual Dashboard** | A custom screen that draws a graph showing exactly which old records merged to create the new profile. | `LWC`, `D3.js` |
+| **AI Summaries** | Click a button to get a quick AI-written paragraph about the customer's value. | `Apex`, `LWC` |
+| **Automatic Tasks**| If a merged customer has spent more than $200 in total, the system instantly assigns a Task to a sales rep to call them. | `Platform Events`, `Flow` |
+| **Secure API** | A safe way for outside systems (like a website) to read the merged customer profiles. | `Apex REST` |
 
 ---
 
-## 🏗️ Enterprise Scalability Considerations
+## 🏗️ How to Scale for Millions of Records
 
-To scale this architecture to **millions of records** in a production environment, the following enterprise patterns should be adopted:
+If you want to use this for a massive company, here is how you would upgrade it:
 
-*   [x] **Change Data Capture (CDC):** Transition from scheduled batch processing to real-time harmonization. Enable CDC on source objects and use Queueable Apex for near real-time fuzzy matching.
-*   [x] **High-Volume Ingestion:** Utilize **Bulk API 2.0** for massive data loads instead of standard synchronous DML.
-*   [x] **Secure Authentication:** Upgrade the REST API authentication from standard session IDs to **Connected Apps with JWT Bearer Token flows** for secure, server-to-server integrations (e.g., MuleSoft, AWS).
-
----
-
-## 🎯 Who is this for & How to Leverage it
-
-This tool is designed to break down data silos and empower cross-functional teams with a single source of truth:
-
-*   **📈 Sales & Account Executives:** 
-    *   *The Problem:* AEs miss upsell opportunities because a customer's value is split across multiple duplicate records.
-    *   *The Leverage:* AEs automatically receive high-priority Salesforce Tasks the moment a customer's *unified* Lifetime Value crosses a VIP threshold, enabling immediate, data-backed outreach.
-*   **🎯 Marketing Teams:**
-    *   *The Problem:* Marketing segments are inaccurate due to misspelled names or duplicate email addresses across POS and marketing systems.
-    *   *The Leverage:* Marketers can query the `Unified_Individual__c` object to build highly accurate, deduplicated segments and use the Agentforce AI Insights to instantly generate personalized campaign messaging.
-*   **🎧 Customer Support Agents:**
-    *   *The Problem:* Agents lack context when a customer calls in because their e-commerce history isn't linked to their in-store loyalty profile.
-    *   *The Leverage:* Using the Data Cloud Explorer dashboard, agents can visually trace a customer's data lineage in real-time, instantly understanding their full cross-platform relationship with the brand.
+*   [x] **Real-Time Updates:** Instead of running the merge engine once a day, use **Change Data Capture (CDC)** to update profiles the exact second new data is saved.
+*   [x] **Fast Uploads:** Use **Bulk API 2.0** when uploading millions of rows of data so the system doesn't slow down.
+*   [x] **Stronger Security:** Use **JWT Bearer Tokens** instead of standard passwords to keep the API completely secure from hackers.
 
 ---
 
-## 🔌 How to Use With Your Real Salesforce Data
+## 🎯 Who is this for?
 
-While this repository comes with mock data generators for portfolio demonstration purposes, you can easily adapt the Identity Resolution Engine to deduplicate and harmonize your actual Salesforce data (e.g., Standard `Contact` and `Lead` objects).
+This tool helps different teams by giving them one clean list of customers:
 
-1. **Update the SOQL Source Queries:** 
-   Modify the `start()` method in `IdentityResolutionEngine.cls` to query your real objects instead of the custom mock objects (`POS_Transaction__c`, `Email_Subscriber__c`).
-2. **Map Your Fields:**
-   In the `execute()` method, map your real fields (e.g., `Contact.FirstName`, `Lead.Email`, `Contact.Amount__c`) to the Soundex fuzzy matching logic and the `Unified_Individual__c` record creation.
-3. **Automate the Ingestion:**
-   Instead of using the manual "Run Harmonization" button in the LWC, schedule the `IdentityResolutionEngine` Batch class to run nightly, or wire it up to a Salesforce Flow that triggers whenever a new Contact/Lead is created.
+*   **📈 Sales Teams:** Find hidden VIP customers. Sometimes a customer looks like a small buyer, but when you merge their 3 duplicate accounts together, you realize they are a huge spender. The system automatically creates a Task to call these VIPs.
+*   **🎯 Marketing Teams:** Stop sending the same email to the same person 3 times. Build a clean, deduplicated mailing list.
+*   **🎧 Customer Support:** When a customer calls, see their entire history (both online and in-store) on one single screen.
+
+---
+
+## 🔌 How to Use With Your Real Data
+
+This project comes with fake data so you can test it immediately. But you can easily change it to work with your real Salesforce data:
+
+1. **Change the Data Source:** Open `IdentityResolutionEngine.cls` and change the code to look at your real `Contact` or `Lead` records instead of our fake data.
+2. **Pick the Fields:** Tell the code which fields you want to use for matching (for example, use `Contact.FirstName` and `Contact.Email`).
+3. **Automate It:** Set the code to run automatically every night so your database stays clean while you sleep.
 
 ---
 
 ## 🛠️ Quick Start
 
-1. Deploy the source code to your org using Salesforce CLI:
+1. Push the code to your Salesforce org using the command line:
    ```bash
    sf project deploy start --source-dir force-app
    ```
-2. Assign the **Data Cloud Harmonizer** Permission Set to your user.
-3. Open the **Data Cloud Explorer** app from the App Launcher.
-4. Click **Inject Mock Data**, followed by **Run Harmonization** to see the engine in action!
+2. Give yourself the **Data Cloud Harmonizer** Permission Set.
+3. Open the **Data Cloud Explorer** app in Salesforce.
+4. Click **Inject Mock Data**, then click **Run Harmonization** to watch it work!
