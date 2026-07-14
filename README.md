@@ -1,43 +1,56 @@
-# Data Cloud Harmonizer & Identity Resolution Engine
+# ☁️ Data Cloud Harmonizer
 
 ![Salesforce](https://img.shields.io/badge/Salesforce-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)
 ![LWC](https://img.shields.io/badge/LWC-F26522?style=for-the-badge&logo=salesforce&logoColor=white)
 ![Apex](https://img.shields.io/badge/Apex-1798c1?style=for-the-badge)
 
-A robust, enterprise-grade Salesforce application designed to simulate the core functionalities of Salesforce Data Cloud (CDP). This project demonstrates how to unify disparate data sources, perform complex identity resolution using fuzzy matching algorithms, and trigger real-time event-driven automation.
+**An enterprise-grade Identity Resolution engine and Data Cloud simulation built natively on Salesforce.**
 
-## 🚀 Key Features
+This project unifies disparate data sources, performs complex identity resolution using fuzzy matching algorithms, visualizes data lineage, and triggers real-time event-driven automations.
 
-*   **Identity Resolution Engine (Apex Batch)**
-    *   Ingests mock data from diverse sources (Email Subscribers, POS Transactions).
-    *   Utilizes the **Soundex algorithm** for fuzzy matching to resolve typos, spelling variations, and differing formats (e.g., "Kathryn Smyth" -> "Catherine Smith").
-    *   Aggregates cross-platform metrics to calculate a unified **Total Lifetime Value (LTV)** and calculates a dynamic **Match Confidence Score**.
-*   **Data Cloud Explorer (LWC)**
-    *   A premium, custom-built Lightning Web Component dashboard acting as the central hub.
-    *   Integrates **D3.js** to render visual Data Lineage graphs, mapping precisely how disparate source records merge into a single Unified Golden Record.
-*   **Agentforce 360 Insights (Simulated AI)**
-    *   Provides generative AI summaries of customer profiles based on their unified data, showcasing an understanding of AI integration patterns and seamless UX loading states.
-*   **Event-Driven Automation**
-    *   Leverages **Platform Events** (`High_Value_Unified__e`) to decouple data processing from automation logic.
-    *   Automatically fires when a Golden Record's Lifetime Value crosses a $200 threshold, instantly triggering a Salesforce Flow to assign follow-up Tasks to account executives.
-*   **Unified Profile REST API**
-    *   A secure, bulkified custom Apex REST endpoint (`/v1/UnifiedProfile/`) allowing external systems to query Golden Records.
-    *   Enforces strict Field-Level Security by executing `WITH USER_MODE`.
+---
 
-## 🏗️ Architecture & Enterprise Scalability Considerations
+## 📐 Architecture Flow
 
-When transitioning this architecture into a massive, multi-million record production environment, several enterprise scalability considerations must be accounted for:
+```mermaid
+graph TD
+    A[🛒 POS Transactions] -->|Ingest| C(⚙️ Identity Resolution Engine)
+    B[📧 Email Subscribers] -->|Ingest| C
+    C -->|Soundex Algorithm| D{Fuzzy Match?}
+    D -->|Yes| E[🥇 Unified Golden Record]
+    D -->|No| F[🥇 New Golden Record]
+    E -->|LTV > $200| G((⚡ Platform Event))
+    G -->|Trigger| H[🌊 Salesforce Flow]
+    H -->|Action| I[✅ Create Task for AE]
+    E --> J[📊 LWC Dashboard w/ D3.js]
+    E --> K[🤖 Agentforce AI Insights]
+```
 
-### 1. Asynchronous Processing & Batch Volumes
-The Identity Resolution Engine currently runs via Batch Apex. In a true enterprise scenario processing tens of millions of rows, this should be scaled using **Bulk API 2.0** for data ingestion, followed by heavily chunked `Database.Batchable` or DataWeave in Apex (to handle faster transformations). 
+---
 
-### 2. Change Data Capture (CDC) vs. Nightly Batches
-Currently, harmonization runs via a manual trigger (or scheduled batch). For real-time harmonization, **Change Data Capture (CDC)** should be enabled on the source objects (`POS_Transaction__c`, `Email_Subscriber__c`). A Platform Event trigger would catch these changes and push the specific records to an asynchronous queue (Queueable Apex) for near real-time fuzzy matching and unification, reducing the need for heavy nightly batch jobs.
+## 🚀 Core Capabilities
 
-### 3. API Authentication & Security
-The custom REST API (`UnifiedProfileRESTAPI.cls`) currently relies on standard Salesforce Session IDs or OAuth for access. In an enterprise landscape (e.g., integrating with an external AWS gateway or MuleSoft), **Connected Apps with JWT Bearer Token flows** should be established. Furthermore, the API respects `WITH USER_MODE`, guaranteeing that the external integration user only retrieves data they explicitly have permission to see, preventing data leaks.
+| Feature | Description | Tech Stack |
+| :--- | :--- | :--- |
+| **Fuzzy Matching** | Uses the **Soundex algorithm** in Apex to resolve spelling variations across data sources (e.g., "Kathryn" -> "Catherine"). | `Batch Apex` |
+| **Data Lineage UI** | A premium custom dashboard using **D3.js** to visually map how disparate records merge into a single Unified Profile. | `LWC`, `D3.js` |
+| **AI Insights** | Provides generative AI summaries evaluating customer value and match confidence scores. | `Apex`, `LWC` |
+| **Event-Driven Actions**| Fires `High_Value_Unified__e` Platform Events when a profile exceeds $200 LTV, instantly triggering follow-up Tasks. | `Platform Events`, `Flow` |
+| **Secure REST API** | A bulkified endpoint (`/v1/UnifiedProfile/`) for external querying, strictly enforcing Field-Level Security. | `Apex REST`, `WITH USER_MODE` |
 
-## 🛠️ Deployment Instructions
+---
+
+## 🏗️ Enterprise Scalability Considerations
+
+To scale this architecture to **millions of records** in a production environment, the following enterprise patterns should be adopted:
+
+*   [x] **Change Data Capture (CDC):** Transition from scheduled batch processing to real-time harmonization. Enable CDC on source objects and use Queueable Apex for near real-time fuzzy matching.
+*   [x] **High-Volume Ingestion:** Utilize **Bulk API 2.0** for massive data loads instead of standard synchronous DML.
+*   [x] **Secure Authentication:** Upgrade the REST API authentication from standard session IDs to **Connected Apps with JWT Bearer Token flows** for secure, server-to-server integrations (e.g., MuleSoft, AWS).
+
+---
+
+## 🛠️ Quick Start
 
 1. Deploy the source code to your org using Salesforce CLI:
    ```bash
