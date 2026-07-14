@@ -39,7 +39,7 @@ graph TD
 | :--- | :--- | :--- |
 | **Smart Merging** | Uses a phonetic algorithm to match names even if they are spelled wrong (e.g., matching "Kathryn" with "Catherine"). | `Batch Apex` |
 | **Visual Dashboard** | A custom screen that draws a graph showing exactly which old records merged to create the new profile. | `LWC`, `D3.js` |
-| **AI Summaries** | Click a button to get a quick AI-written paragraph about the customer's value. | `Apex`, `LWC` |
+| **Agentforce Insights** | Provides a **simulated** AI paragraph evaluating customer value. (Built to demonstrate frontend-backend integration without incurring active API costs). | `Apex`, `LWC` |
 | **Automatic Tasks**| If a merged customer has spent more than $200 in total, the system instantly assigns a Task to a sales rep to call them. | `Platform Events`, `Flow` |
 | **Secure API** | A safe way for outside systems (like a website) to read the merged customer profiles. | `Apex REST` |
 | **Automated Testing** | Comprehensive Apex test coverage ensuring the batch merge logic handles large data volumes securely. | `Apex Testing` |
@@ -48,9 +48,11 @@ graph TD
 
 ## 🏗️ How to Scale for Millions of Records
 
-If you want to use this for a massive company, here is how you would upgrade it:
+If you want to use this architecture for a massive enterprise company, here is how you would upgrade it:
 
-*   **Real-Time Updates:** Instead of running the merge engine once a day, use **Change Data Capture (CDC)** to update profiles the exact second new data is saved.
+*   **Real-Time Updates (CDC):** Instead of running the merge engine once a day, use **Change Data Capture** to update profiles the exact second new data is saved.
+*   **Database Indexing for LDV:** To prevent SOQL timeouts on Large Data Volumes, you must request **Custom Indexes** from Salesforce Support on the fuzzy matching key fields.
+*   **Dynamic Object Mapping:** Hardcoding field mappings in Apex is an anti-pattern. Mappings should be moved to **Custom Metadata Types (CMDT)** so Admins can configure new data sources declaratively.
 *   **Fast Uploads:** Use **Bulk API 2.0** when uploading millions of rows of data so the system doesn't slow down.
 *   **Stronger Security:** Use **JWT Bearer Tokens** instead of standard passwords to keep the API completely secure from hackers.
 
@@ -68,7 +70,7 @@ This tool helps different teams by giving them one clean list of customers:
 
 ## 🔌 How to Use With Your Real Data
 
-This project comes with fake data so you can test it immediately. But you can easily change it to work with your real Salesforce data:
+This project comes with fake data so you can test it immediately. But you can easily change it to work with your real Salesforce data. *(Note: For a production deployment, replace this manual Apex configuration with Custom Metadata Types).*
 
 1. **Change the Data Source:** Open `IdentityResolutionEngine.cls` and change the code to look at your real `Contact` or `Lead` records instead of our fake data.
 2. **Pick the Fields:** Tell the code which fields you want to use for matching (for example, use `Contact.FirstName` and `Contact.Email`).
