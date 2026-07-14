@@ -16,14 +16,19 @@ This project acts like a mini version of Salesforce Data Cloud. It takes custome
 graph TD
     A[🛒 Store Purchases] -->|Read Data| C(⚙️ Merge Engine)
     B[📧 Email Lists] -->|Read Data| C
-    C -->|Check Spelling| D{Is it a duplicate?}
+    C -->|Phonetic Match| D{Is it a duplicate?}
     D -->|Yes| E[🥇 Update Existing Profile]
     D -->|No| F[🥇 Create New Profile]
-    E -->|Spent over $200?| G((⚡ Send Alert))
+    
+    E --> Z{Unified Profile}
+    F --> Z
+    
+    Z -->|Spent over $200?| G((⚡ Send Alert))
     G -->|Trigger| H[🌊 Salesforce Flow]
     H -->|Action| I[✅ Create Task for Sales Rep]
-    E --> J[📊 Show Graph Dashboard]
-    E --> K[🤖 Get AI Summary]
+    
+    Z --> J[📊 Show Graph Dashboard]
+    Z --> K[🤖 Get AI Summary]
 ```
 
 ---
@@ -32,11 +37,12 @@ graph TD
 
 | Feature | Description | Tech Used |
 | :--- | :--- | :--- |
-| **Smart Merging** | Uses an algorithm to match names even if they are spelled wrong (e.g., matching "Kathryn" with "Catherine"). | `Batch Apex` |
+| **Smart Merging** | Uses a phonetic algorithm to match names even if they are spelled wrong (e.g., matching "Kathryn" with "Catherine"). | `Batch Apex` |
 | **Visual Dashboard** | A custom screen that draws a graph showing exactly which old records merged to create the new profile. | `LWC`, `D3.js` |
 | **AI Summaries** | Click a button to get a quick AI-written paragraph about the customer's value. | `Apex`, `LWC` |
 | **Automatic Tasks**| If a merged customer has spent more than $200 in total, the system instantly assigns a Task to a sales rep to call them. | `Platform Events`, `Flow` |
 | **Secure API** | A safe way for outside systems (like a website) to read the merged customer profiles. | `Apex REST` |
+| **Automated Testing** | Comprehensive Apex test coverage ensuring the batch merge logic handles large data volumes securely. | `Apex Testing` |
 
 ---
 
@@ -44,9 +50,9 @@ graph TD
 
 If you want to use this for a massive company, here is how you would upgrade it:
 
-*   [x] **Real-Time Updates:** Instead of running the merge engine once a day, use **Change Data Capture (CDC)** to update profiles the exact second new data is saved.
-*   [x] **Fast Uploads:** Use **Bulk API 2.0** when uploading millions of rows of data so the system doesn't slow down.
-*   [x] **Stronger Security:** Use **JWT Bearer Tokens** instead of standard passwords to keep the API completely secure from hackers.
+*   **Real-Time Updates:** Instead of running the merge engine once a day, use **Change Data Capture (CDC)** to update profiles the exact second new data is saved.
+*   **Fast Uploads:** Use **Bulk API 2.0** when uploading millions of rows of data so the system doesn't slow down.
+*   **Stronger Security:** Use **JWT Bearer Tokens** instead of standard passwords to keep the API completely secure from hackers.
 
 ---
 
@@ -72,10 +78,14 @@ This project comes with fake data so you can test it immediately. But you can ea
 
 ## 🛠️ Quick Start
 
-1. Push the code to your Salesforce org using the command line:
+1. Authenticate your Salesforce CLI to your org:
+   ```bash
+   sf org login web
+   ```
+2. Push the code to your Salesforce org:
    ```bash
    sf project deploy start --source-dir force-app
    ```
-2. Give yourself the **Data Cloud Harmonizer** Permission Set.
-3. Open the **Data Cloud Explorer** app in Salesforce.
-4. Click **Inject Mock Data**, then click **Run Harmonization** to watch it work!
+3. Give yourself the **Data Cloud Harmonizer** Permission Set.
+4. Open the **Data Cloud Explorer** app in Salesforce.
+5. Click **Inject Mock Data**, then click **Run Harmonization** to watch it work!
