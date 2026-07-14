@@ -320,7 +320,7 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
             
             List<High_Value_Unified__e> events = new List<High_Value_Unified__e>();
             for (Unified_Individual__c u : state.upsertMap.values()) {
-                if (u.Total_Lifetime_Value__c >= 500 && u.Id != null) {
+                if (u.Total_Lifetime_Value__c >= 200 && u.Id != null) {
                     events.add(new High_Value_Unified__e(
                         Unified_Individual_Id__c = u.Id,
                         Lifetime_Value__c = u.Total_Lifetime_Value__c

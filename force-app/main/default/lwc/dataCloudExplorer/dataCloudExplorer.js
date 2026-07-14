@@ -11,6 +11,7 @@ import getLineageData from '@salesforce/apex/IdentityResolutionEngine.getLineage
 import getResolutionQueue from '@salesforce/apex/IdentityResolutionEngine.getResolutionQueue';
 import manualMerge from '@salesforce/apex/IdentityResolutionEngine.manualMerge';
 import manualUnmerge from '@salesforce/apex/IdentityResolutionEngine.manualUnmerge';
+import generateInsights from '@salesforce/apex/AgentforceIntegrationService.generateInsights';
 import { refreshApex } from '@salesforce/apex';
 
 export default class DataCloudExplorer extends LightningElement {
@@ -374,23 +375,20 @@ export default class DataCloudExplorer extends LightningElement {
         this.isAILoading = true;
         this.aiSummaryText = '';
 
-        // Simulate Agentforce Latency
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        setTimeout(() => {
-            const ltv = golden.Total_Lifetime_Value__c ? golden.Total_Lifetime_Value__c : 0;
-            const sentiment = ltv > 500 ? 'highly valuable' : 'emerging';
-            const fName = golden.First_Name__c ? golden.First_Name__c : 'Unknown';
-            const conf = golden.Confidence_Score__c ? golden.Confidence_Score__c : 100;
-            
-            this.aiSummaryText = `
-                <p><strong>Agentforce Summary for ${fName}</strong></p>
-                <br/>
-                <p>This is a <strong>${sentiment}</strong> customer based on cross-cloud signals. Their unified Lifetime Value is calculated at <strong>$${ltv}</strong> with a match confidence score of <strong>${conf}%</strong>.</p>
-                <br/>
-                <p><em>Recommended Action:</em> Add this profile to the ${sentiment === 'highly valuable' ? 'VIP Loyalty' : 'Re-engagement'} segment in Marketing Cloud.</p>
-            `;
-            this.isAILoading = false;
-        }, 2500);
+        const ltv = golden.Total_Lifetime_Value__c ? golden.Total_Lifetime_Value__c : 0;
+        const fName = golden.First_Name__c ? golden.First_Name__c : 'Unknown';
+        const conf = golden.Confidence_Score__c ? golden.Confidence_Score__c : 100;
+
+        generateInsights({ firstName: fName, lifetimeValue: ltv, confidenceScore: conf })
+            .then(result => {
+                this.aiSummaryText = result;
+            })
+            .catch(error => {
+                this.aiSummaryText = '<span style="color:red;">Error fetching insights: ' + (error.body ? error.body.message : error.message) + '</span>';
+            })
+            .finally(() => {
+                this.isAILoading = false;
+            });
     }
 
     handleCloseAIModal() {
