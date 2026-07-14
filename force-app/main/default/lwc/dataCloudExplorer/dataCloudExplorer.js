@@ -361,6 +361,42 @@ export default class DataCloudExplorer extends LightningElement {
             });
     }
     
+    // --- AI Insights Logic ---
+    @track isAIModalOpen = false;
+    @track isAILoading = false;
+    @track aiSummaryText = '';
+
+    handleAIInsights(event) {
+        const recordId = event.target.dataset.id;
+        const golden = this.unifiedRecords.find(r => r.Id === recordId);
+        
+        this.isAIModalOpen = true;
+        this.isAILoading = true;
+        this.aiSummaryText = '';
+
+        // Simulate Agentforce Latency
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            const ltv = golden.Total_Lifetime_Value__c ? golden.Total_Lifetime_Value__c : 0;
+            const sentiment = ltv > 500 ? 'highly valuable' : 'emerging';
+            const fName = golden.First_Name__c ? golden.First_Name__c : 'Unknown';
+            const conf = golden.Confidence_Score__c ? golden.Confidence_Score__c : 100;
+            
+            this.aiSummaryText = `
+                <p><strong>Agentforce Summary for ${fName}</strong></p>
+                <br/>
+                <p>This is a <strong>${sentiment}</strong> customer based on cross-cloud signals. Their unified Lifetime Value is calculated at <strong>$${ltv}</strong> with a match confidence score of <strong>${conf}%</strong>.</p>
+                <br/>
+                <p><em>Recommended Action:</em> Add this profile to the ${sentiment === 'highly valuable' ? 'VIP Loyalty' : 'Re-engagement'} segment in Marketing Cloud.</p>
+            `;
+            this.isAILoading = false;
+        }, 2500);
+    }
+
+    handleCloseAIModal() {
+        this.isAIModalOpen = false;
+    }
+    
     // --- D3 Graph Logic ---
     @track isGraphModalOpen = false;
     @track isGraphLoading = false;
