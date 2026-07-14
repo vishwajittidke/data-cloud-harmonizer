@@ -66,6 +66,19 @@ This tool is designed to break down data silos and empower cross-functional team
 
 ---
 
+## 🔌 How to Use With Your Real Salesforce Data
+
+While this repository comes with mock data generators for portfolio demonstration purposes, you can easily adapt the Identity Resolution Engine to deduplicate and harmonize your actual Salesforce data (e.g., Standard `Contact` and `Lead` objects).
+
+1. **Update the SOQL Source Queries:** 
+   Modify the `start()` method in `IdentityResolutionEngine.cls` to query your real objects instead of the custom mock objects (`POS_Transaction__c`, `Email_Subscriber__c`).
+2. **Map Your Fields:**
+   In the `execute()` method, map your real fields (e.g., `Contact.FirstName`, `Lead.Email`, `Contact.Amount__c`) to the Soundex fuzzy matching logic and the `Unified_Individual__c` record creation.
+3. **Automate the Ingestion:**
+   Instead of using the manual "Run Harmonization" button in the LWC, schedule the `IdentityResolutionEngine` Batch class to run nightly, or wire it up to a Salesforce Flow that triggers whenever a new Contact/Lead is created.
+
+---
+
 ## 🛠️ Quick Start
 
 1. Deploy the source code to your org using Salesforce CLI:
