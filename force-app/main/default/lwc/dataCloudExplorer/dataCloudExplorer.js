@@ -381,12 +381,14 @@ export default class DataCloudExplorer extends LightningElement {
 
         generateInsights({ firstName: fName, lifetimeValue: ltv, confidenceScore: conf })
             .then(result => {
-                this.aiSummaryText = result;
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                setTimeout(() => {
+                    this.aiSummaryText = result;
+                    this.isAILoading = false;
+                }, 1500); // Add a 1.5s simulated delay for realistic "AI generation" feel
             })
             .catch(error => {
                 this.aiSummaryText = '<span style="color:red;">Error fetching insights: ' + (error.body ? error.body.message : error.message) + '</span>';
-            })
-            .finally(() => {
                 this.isAILoading = false;
             });
     }
