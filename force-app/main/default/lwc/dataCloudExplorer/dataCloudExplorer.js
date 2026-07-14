@@ -268,6 +268,13 @@ export default class DataCloudExplorer extends LightningElement {
         }
     }
 
+    get currentStepValue() {
+        if (this.activeTab === 'queue' && this.unlinkedSubscribers.length === 0 && this.unlinkedPOS.length === 0) {
+            return 'done'; // When step value doesn't match, all steps get marked as completed in SLDS Path
+        }
+        return this.activeTab;
+    }
+
     handleRefreshQueue() {
         this.isQueueLoading = true;
         getResolutionQueue()
