@@ -22,7 +22,7 @@ export default class DataCloudExplorer extends LightningElement {
     @track progressMessage = '';
     @track progressPercent = 0;
     @track showProgressBar = false;
-    @track activeTab = 'dashboard';
+    @track activeTab = 'raw';
 
     wiredDataResult;
     _pollTimeoutId = null;
