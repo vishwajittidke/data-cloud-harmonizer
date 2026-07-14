@@ -14,3 +14,8 @@
     background-color: #e0f0fa;
     color: #0176d3;
 }
+
+.scrollable-container {
+    max-height: 600px;
+    overflow-y: auto;
+}

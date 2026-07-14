@@ -31,7 +31,8 @@
                                 <template if:true={hasRawData}>
                                     <!-- Marketing Data -->
                                     <h3 class="slds-text-title_caps slds-m-bottom_x-small">Email Marketing Tool (Subscribers)</h3>
-                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-bottom_large custom-table">
+                                    <div class="scrollable-container slds-m-bottom_large">
+                                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
                                         <thead>
                                             <tr><th>Name</th><th>Email</th><th>Golden Record</th></tr>
                                         </thead>
@@ -52,11 +53,13 @@
                                                 </tr>
                                             </template>
                                         </tbody>
-                                    </table>
+                                        </table>
+                                    </div>
 
                                     <!-- POS Data -->
                                     <h3 class="slds-text-title_caps slds-m-bottom_x-small">In-Store POS System (Transactions)</h3>
-                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                                    <div class="scrollable-container">
+                                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
                                         <thead>
                                             <tr><th>Customer</th><th>Phone</th><th>Spend</th><th>Golden Record</th></tr>
                                         </thead>
@@ -78,7 +81,8 @@
                                                 </tr>
                                             </template>
                                         </tbody>
-                                    </table>
+                                        </table>
+                                    </div>
                                 </template>
                             </div>
                         </div>
@@ -109,7 +113,8 @@
                                 
                                 <template if:false={isProcessing}>
                                     <template if:true={hasUnifiedData}>
-                                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table golden-table">
+                                        <div class="scrollable-container">
+                                            <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table golden-table">
                                             <thead>
                                                 <tr>
                                                     <th>First Name</th>
@@ -142,7 +147,8 @@
                                                     </tr>
                                                 </template>
                                             </tbody>
-                                        </table>
+                                            </table>
+                                        </div>
                                     </template>
                                     
                                     <template if:false={hasUnifiedData}>
@@ -177,7 +183,8 @@
                             <div class="slds-col slds-size_1-of-2">
                                 <div class="slds-box slds-theme_shade">
                                     <h3 class="slds-text-title_caps slds-m-bottom_x-small">Unlinked Subscribers</h3>
-                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                                    <div class="scrollable-container">
+                                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
                                         <thead>
                                             <tr><th>Name</th><th>Email</th><th>Action</th></tr>
                                         </thead>
@@ -192,7 +199,8 @@
                                                 </tr>
                                             </template>
                                         </tbody>
-                                    </table>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
 
@@ -200,7 +208,8 @@
                             <div class="slds-col slds-size_1-of-2">
                                 <div class="slds-box slds-theme_shade">
                                     <h3 class="slds-text-title_caps slds-m-bottom_x-small">Unlinked POS Transactions</h3>
-                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                                    <div class="scrollable-container">
+                                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
                                         <thead>
                                             <tr><th>Customer</th><th>Phone</th><th>Action</th></tr>
                                         </thead>
@@ -215,7 +224,8 @@
                                                 </tr>
                                             </template>
                                         </tbody>
-                                    </table>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
