@@ -123,7 +123,7 @@ public with sharing class IdentityResolutionEngine implements Database.Batchable
             List<Map<String, Object>> nodes = new List<Map<String, Object>>();
             List<Map<String, Object>> links = new List<Map<String, Object>>();
             
-            Unified_Individual__c golden = [SELECT Id, First_Name__c, Match_Key__c FROM Unified_Individual__c WHERE Id = :goldenRecordId WITH USER_MODE LIMIT 1];
+            Unified_Individual__c golden = [SELECT Id, First_Name__c FROM Unified_Individual__c WHERE Id = :goldenRecordId WITH USER_MODE LIMIT 1];
             
             // Add Golden Record Node (Center)
             nodes.add(new Map<String, Object>{ 'id' => golden.Id, 'group' => 1, 'label' => 'Golden: ' + golden.First_Name__c });
