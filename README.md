@@ -1,30 +1,48 @@
-# 🌩️ Salesforce Data Cloud: Identity Resolution Engine
+# Data Cloud Harmonizer & Identity Resolution Engine
 
-## Overview
-This repository contains a fully interactive, custom-built simulation of the **Salesforce Data Cloud Identity Resolution Engine**. 
+![Salesforce](https://img.shields.io/badge/Salesforce-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)
+![LWC](https://img.shields.io/badge/LWC-F26522?style=for-the-badge&logo=salesforce&logoColor=white)
+![Apex](https://img.shields.io/badge/Apex-1798c1?style=for-the-badge)
 
-Because standard Developer Edition orgs do not have Data Cloud provisioned, this project was architected from scratch using **Apex, SOQL, and Lightning Web Components (LWC)** to prove a fundamental, code-level understanding of how Data Cloud ingests, harmonizes, and unifies fragmented customer data silos into a **Customer 360 Golden Record**.
+A robust, enterprise-grade Salesforce application designed to simulate the core functionalities of Salesforce Data Cloud (CDP). This project demonstrates how to unify disparate data sources, perform complex identity resolution using fuzzy matching algorithms, and trigger real-time event-driven automation.
 
-## 🚀 The Architecture
-The simulation features three core Data Model Objects (Custom Objects):
-1. `POS_Transaction__c`: Represents a messy, disconnected **Physical Retail / In-Store** system (contains phone numbers and spend, but no email).
-2. `Email_Subscriber__c`: Represents a disconnected **Marketing Automation** silo (contains names and emails, but no phone).
-3. `Unified_Individual__c`: Represents the Data Cloud **Golden Record**.
+## 🚀 Key Features
 
-## ⚙️ The Harmonization Engine (Apex)
-The core logic lives in `IdentityResolutionEngine.cls`. This class acts as the Data Cloud processing engine:
-* **Fuzzy Matching:** Automatically normalizes disparate string inputs to find identity overlaps.
-* **Identity Stitching:** Intelligently merges the digital marketing data (Email) with the physical retail data (Phone, Spend).
-* **Golden Record Generation:** Upserts a unified `Unified_Individual__c` record that acts as the single source of truth for the enterprise.
+*   **Identity Resolution Engine (Apex Batch)**
+    *   Ingests mock data from diverse sources (Email Subscribers, POS Transactions).
+    *   Utilizes the **Soundex algorithm** for fuzzy matching to resolve typos, spelling variations, and differing formats (e.g., "Kathryn Smyth" -> "Catherine Smith").
+    *   Aggregates cross-platform metrics to calculate a unified **Total Lifetime Value (LTV)** and calculates a dynamic **Match Confidence Score**.
+*   **Data Cloud Explorer (LWC)**
+    *   A premium, custom-built Lightning Web Component dashboard acting as the central hub.
+    *   Integrates **D3.js** to render visual Data Lineage graphs, mapping precisely how disparate source records merge into a single Unified Golden Record.
+*   **Agentforce 360 Insights (Simulated AI)**
+    *   Provides generative AI summaries of customer profiles based on their unified data, showcasing an understanding of AI integration patterns and seamless UX loading states.
+*   **Event-Driven Automation**
+    *   Leverages **Platform Events** (`High_Value_Unified__e`) to decouple data processing from automation logic.
+    *   Automatically fires when a Golden Record's Lifetime Value crosses a $200 threshold, instantly triggering a Salesforce Flow to assign follow-up Tasks to account executives.
+*   **Unified Profile REST API**
+    *   A secure, bulkified custom Apex REST endpoint (`/v1/UnifiedProfile/`) allowing external systems to query Golden Records.
+    *   Enforces strict Field-Level Security by executing `WITH USER_MODE`.
 
-## 💻 Interactive LWC Dashboard
-The project includes a completely self-contained, interactive Lightning Web Component (`dataCloudExplorer`).
-* **Dynamic Injection:** Click a button to simulate a live data feed of messy records flooding into the fragmented silos.
-* **Real-time Resolution:** Click "Run Harmonization" to watch the Apex engine instantly resolve the identities and render the stitched Customer 360 profiles in real-time.
-* **State Management:** Fully dynamic UI leveraging `@track` and `@wire` for instant updates without page refreshes.
+## 🏗️ Architecture & Enterprise Scalability Considerations
 
-## 🛠 Tech Stack
-* **Salesforce Apex** (Harmonization algorithms)
-* **SOQL / DML** (Database aggregation)
-* **Lightning Web Components** (Frontend visualization)
-* **Salesforce Lightning Design System (SLDS)** (Enterprise UX/UI)
+When transitioning this architecture into a massive, multi-million record production environment, several enterprise scalability considerations must be accounted for:
+
+### 1. Asynchronous Processing & Batch Volumes
+The Identity Resolution Engine currently runs via Batch Apex. In a true enterprise scenario processing tens of millions of rows, this should be scaled using **Bulk API 2.0** for data ingestion, followed by heavily chunked `Database.Batchable` or DataWeave in Apex (to handle faster transformations). 
+
+### 2. Change Data Capture (CDC) vs. Nightly Batches
+Currently, harmonization runs via a manual trigger (or scheduled batch). For real-time harmonization, **Change Data Capture (CDC)** should be enabled on the source objects (`POS_Transaction__c`, `Email_Subscriber__c`). A Platform Event trigger would catch these changes and push the specific records to an asynchronous queue (Queueable Apex) for near real-time fuzzy matching and unification, reducing the need for heavy nightly batch jobs.
+
+### 3. API Authentication & Security
+The custom REST API (`UnifiedProfileRESTAPI.cls`) currently relies on standard Salesforce Session IDs or OAuth for access. In an enterprise landscape (e.g., integrating with an external AWS gateway or MuleSoft), **Connected Apps with JWT Bearer Token flows** should be established. Furthermore, the API respects `WITH USER_MODE`, guaranteeing that the external integration user only retrieves data they explicitly have permission to see, preventing data leaks.
+
+## 🛠️ Deployment Instructions
+
+1. Deploy the source code to your org using Salesforce CLI:
+   ```bash
+   sf project deploy start --source-dir force-app
+   ```
+2. Assign the **Data Cloud Harmonizer** Permission Set to your user.
+3. Open the **Data Cloud Explorer** app from the App Launcher.
+4. Click **Inject Mock Data**, followed by **Run Harmonization** to see the engine in action!
