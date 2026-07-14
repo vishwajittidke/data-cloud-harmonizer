@@ -38,6 +38,7 @@ graph TD
 | Feature | Description | Tech Used |
 | :--- | :--- | :--- |
 | **Smart Merging** | Uses a phonetic algorithm to match names even if they are spelled wrong (e.g., matching "Kathryn" with "Catherine"). | `Batch Apex` |
+| **Human-in-the-Loop Resolution** | Provides a specialized "Inbox Zero" manual queue for edge-case duplicates that fall below the fuzzy matching threshold, ensuring strict data governance. | `LWC`, `SLDS` |
 | **Visual Dashboard** | A custom screen that draws a graph showing exactly which old records merged to create the new profile. | `LWC`, `D3.js` |
 | **Agentforce Insights** | Provides a **simulated** AI paragraph evaluating customer value. (Built to demonstrate frontend-backend integration without incurring active API costs). | `Apex`, `LWC` |
 | **Automatic Tasks**| If a merged customer has spent more than $200 in total, the system instantly assigns a Task to a sales rep to call them. | `Platform Events`, `Flow` |
